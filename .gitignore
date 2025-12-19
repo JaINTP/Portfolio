@@ -94,3 +94,9 @@ apps/web/.eslintcache
 *.bmp
 *.tiff
 apps/api/uploads/
+
+# Allow favicons and assets in specific directories
+!apps/api/app/static/*.ico
+!apps/api/app/static/*.png
+!apps/web/public/*.ico
+!apps/web/public/*.png

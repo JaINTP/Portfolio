@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import logging
-
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import ORJSONResponse
-from fastapi.responses import JSONResponse
+from fastapi.responses import ORJSONResponse, JSONResponse, FileResponse
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -174,5 +173,12 @@ def create_app() -> FastAPI:
         return response
 
 
+
+    @app.get("/favicon.ico", include_in_schema=False)
+    async def favicon():
+        favicon_path = os.path.join(os.path.dirname(__file__), "static", "favicon.ico")
+        if os.path.exists(favicon_path):
+            return FileResponse(favicon_path)
+        return Response(status_code=404)
 
     return app
