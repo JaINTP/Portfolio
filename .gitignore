@@ -1,0 +1,96 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# Editors
+.idea/
+.vscode/
+*.sw?
+
+# Operating system clutter
+.DS_Store
+Thumbs.db
+
+# Logs & runtime artifacts
+*.log
+*.log.*
+*.pid
+start.log
+
+# Env & secrets
+.env
+.env.production
+.env.staging
+.env.test
+*.env.local
+*token.json*
+*credentials.json*
+apps/api/.env
+apps/api/.env.production
+apps/web/.env
+apps/web/.env.production
+secrets/
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.coverage*
+poetry.lock
+Pipfile.lock
+venv/
+.venv/
+**/.venv/
+
+# Node / Yarn
+node_modules/
+**/node_modules/
+apps/web/.pnp.cjs
+apps/web/.pnp.loader.mjs
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.yarn/releases/
+.yarn/plugins/
+.yarn/versions/
+
+# Build outputs & caches
+build/
+dist/
+coverage/
+.cache/
+apps/web/.cache/
+apps/web/public/uploads/
+
+# Frontend tooling (CRACO/CRA)
+apps/web/.eslintcache
+
+# Binary / archives
+**/*.zip
+**/*.tar
+**/*.tar.gz
+**/*.tgz
+**/*.tar.bz2
+*.pack
+*.dylib
+
+# Misc tooling directories
+.vercel
+.chainlit/
+.ipynb_checkpoints/
+
+# Images & Media
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
+*.svg
+*.ico
+*.bmp
+*.tiff
+apps/api/uploads/

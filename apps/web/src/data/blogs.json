@@ -1,0 +1,13 @@
+[
+  {
+    "id": "1",
+    "title": "Well, hello there.",
+    "excerpt": "A quick introduction into who I am, and why you might enjoy reading my musings.",
+    "content": "Welcome to my portfolio website!",
+    "category": "Personal",
+    "tags": ["Blog", "Introduction"],
+    "date": "2025-01-15",
+    "readTime": "2 min",
+    "image": "https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?w=800&h=600&fit=crop"
+  }
+]

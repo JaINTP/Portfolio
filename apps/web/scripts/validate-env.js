@@ -1,0 +1,53 @@
+#!/usr/bin/env node
+/**
+ * Validate environment variables before shipping a production build.
+ *
+ * The CRA toolchain automatically exposes every REACT_APP_* variable to the
+ * client bundle, so we assert that only the allowlisted keys exist. We also
+ * require the API origin to be defined at build-time so production bundles
+ * never fall back to potentially unsafe defaults.
+ */
+
+const ALLOWED_ENV_VARS = new Set(['REACT_APP_API_BASE_URL']);
+
+const fail = (message) => {
+  console.error(`[env] ${message}`);
+  process.exit(1);
+};
+
+const envKeys = Object.keys(process.env).filter((key) => key.startsWith('REACT_APP_'));
+const unexpected = envKeys.filter((key) => !ALLOWED_ENV_VARS.has(key));
+
+if (unexpected.length > 0) {
+  fail(
+    `Unexpected environment variables detected: ${unexpected.join(
+      ', ',
+    )}. Remove them or rename without the REACT_APP_ prefix to keep them out of the client bundle.`,
+  );
+}
+
+const apiBase = (process.env.REACT_APP_API_BASE_URL || '').trim();
+
+if (!apiBase) {
+  fail(
+    'REACT_APP_API_BASE_URL is not set. Configure it in .env.production or pass it via the build environment.',
+  );
+}
+
+let parsed;
+try {
+  parsed = new URL(apiBase);
+} catch (error) {
+  fail(`REACT_APP_API_BASE_URL must be a valid absolute URL. Received: ${apiBase}`);
+}
+
+const isLocalHost =
+  parsed.hostname === 'localhost' ||
+  parsed.hostname === '127.0.0.1' ||
+  parsed.hostname.endsWith('.local');
+
+if (!isLocalHost && parsed.protocol !== 'https:') {
+  fail('REACT_APP_API_BASE_URL must use HTTPS for non-local origins.');
+}
+
+console.log('[env] Environment variables validated successfully.');

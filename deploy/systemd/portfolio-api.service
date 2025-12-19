@@ -1,0 +1,40 @@
+[Unit]
+Description=Portfolio API (Docker Compose)
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/portfolio
+EnvironmentFile=/opt/portfolio/.env
+ExecStart=/usr/bin/docker compose --project-directory /opt/portfolio up --no-color api
+ExecStop=/usr/bin/docker compose --project-directory /opt/portfolio stop api
+ExecStopPost=/usr/bin/docker compose --project-directory /opt/portfolio rm -f api
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=90
+User=root
+Group=root
+UMask=0027
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+MemoryDenyWriteExecute=yes
+LockPersonality=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+ReadWritePaths=/var/lib/docker /var/run/docker.sock /var/lib/portfolio/uploads
+RuntimeDirectory=portfolio-api
+LogsDirectory=portfolio
+
+[Install]
+WantedBy=multi-user.target

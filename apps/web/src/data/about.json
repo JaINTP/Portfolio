@@ -1,0 +1,39 @@
+{
+  "name": "Jai Brown (JaINTP)",
+  "title": "Software Developer | Hobbiest Bug Hunter | Science Enthusiast",
+  "bio": "I'm a passionate software developer with expertise in building secure, scalable systems. My work spans from hunting vulnerabilities to fiddling with micro-organisms. When I'm not coding or researching, you'll find me with my four-legged debugging partner and my family.",
+  "email": "admin@jaintp.com",
+  "location": "Sydney, Australia",
+  "skills": [
+    "Python",
+    "JavaScript/TypeScript",
+    "React",
+    "Node.js",
+    "Security Research",
+    "Bug Bounty Hunting",
+    "Biology",
+    "Chemistry",
+    "Laboratory Work",
+    "Docker",
+    "Linux",
+    "Dad Jokes"
+  ],
+  "social": {
+    "github": "https://github.com",
+    "linkedin": "https://linkedin.com",
+    "twitter": "https://twitter.com",
+    "hackerone": "https://hackerone.com"
+  },
+  "dog": {
+    "name": "Sköll",
+    "role": "Chief Debugging Supawvisor",
+    "bio": "Sköll is my loyal companion and unofficial code reviewer. With a keen sense for detecting bugs (both software and actual bugs in the backyard), Sköll keeps me grounded and reminds me that not all problems can be solved with more code. Specializes in throw and fetch debugging and mandatory walk breaks.",
+    "image": "https://scontent-syd2-1.cdninstagram.com/v/t51.75761-15/482788320_17849199564414923_1375755520444674629_n.jpg?stp=dst-jpegr_e35_tt6&_nc_cat=100&ig_cache_key=MzU4MDA0NDUyOTcxNjA5MzUyMg%3D%3D.3-ccb1-7&ccb=1-7&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6InhwaWRzLjE0NDB4MTQ0MC5oZHIuQzMifQ%3D%3D&_nc_ohc=VitXk69aKxwQ7kNvwHURp8L&_nc_oc=AdmrD9Zv4gdbu95xAzNURkbi2sILLhg5B12vVKKzK_n_7USsP7RkO6Y4LN9sWBDsLIw&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&se=-1&_nc_ht=scontent-syd2-1.cdninstagram.com&_nc_gid=5sVWTFS24sswcgdvY4EGMg&oh=00_Afdf-w_QYK69Pr6A6ozewAINJlDGksrZr042Y9kbDKJTXg&oe=68F22D4E",
+    "skills": [
+      "Throw Fetch Debugging",
+      "Stress Relief",
+      "Walk Reminders",
+      "Unconditional Support"
+    ]
+  }
+}

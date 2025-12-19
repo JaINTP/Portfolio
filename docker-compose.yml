@@ -1,0 +1,99 @@
+services:
+  api:
+    build:
+      context: ./apps/api
+    init: true
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      DATABASE_URL: ${DATABASE_URL}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-https://YOUR_DOMAIN}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+      DATABASE_POOL_SIZE: ${DATABASE_POOL_SIZE:-5}
+      DATABASE_MAX_OVERFLOW: ${DATABASE_MAX_OVERFLOW:-5}
+      DATABASE_POOL_TIMEOUT: ${DATABASE_POOL_TIMEOUT:-10}
+      UPLOADS_DIR: /data/uploads
+      TRUSTED_HOSTS: ${TRUSTED_HOSTS}
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-127.0.0.1,172.16.0.0/12}
+      ENABLE_HSTS: ${ENABLE_HSTS:-true}
+      SESSION_SECRET_KEY: ${SESSION_SECRET_KEY}
+      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-portfolio_session}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-true}
+      SESSION_COOKIE_SAMESITE: ${SESSION_COOKIE_SAMESITE:-strict}
+      SESSION_COOKIE_MAX_AGE_SECONDS: ${SESSION_COOKIE_MAX_AGE_SECONDS:-3600}
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-127.0.0.1,172.16.0.0/12}
+      API_RATE_LIMIT: ${API_RATE_LIMIT:-120/minute}
+      API_RATE_LIMIT_BURST: ${API_RATE_LIMIT_BURST:-240}
+      LOGIN_RATE_LIMIT: ${LOGIN_RATE_LIMIT:-10/minute}
+    volumes:
+      - api_uploads:/data/uploads
+    ports:
+      - "127.0.0.1:8000:8000"
+    expose:
+      - "8000"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,mode=1777
+      - /tmp/gunicorn:rw,noexec,nosuid,size=16m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 150
+    ulimits:
+      nofile:
+        soft: 4096
+        hard: 8192
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/healthz >/dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - cloudflared_network
+      - portfolio_net
+
+  web:
+    build:
+      context: ./apps/web
+      args:
+        FRONTEND_API_ORIGIN: ${FRONTEND_API_ORIGIN:-https://YOUR_DOMAIN/api}
+    init: true
+    ports:
+      - "127.0.0.1:3000:3000"
+    expose:
+      - "3000"
+    volumes:
+      - api_uploads:/usr/share/nginx/html/uploads:ro
+    depends_on:
+      - api
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m,mode=1777
+      - /var/cache/nginx:rw,noexec,nosuid,size=32m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 200
+    ulimits:
+      nofile:
+        soft: 4096
+        hard: 8192
+    restart: unless-stopped
+    networks:
+      - cloudflared_network
+
+volumes:
+  api_uploads:
+
+networks:
+  cloudflared_network:
+    external: true
+  portfolio_net:
+    external: true

@@ -1,0 +1,13 @@
+[
+  {
+    "id": "1",
+    "title": "Advanced XSS Detection Framework",
+    "description": "Developed an automated framework for detecting complex XSS vulnerabilities in modern web applications. Utilizes machine learning for pattern recognition and has discovered 15+ zero-days.",
+    "category": "bug-bounty",
+    "tags": ["Security", "Bug Bounty", "XSS", "Automation"],
+    "image": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&h=600&fit=crop",
+    "date": "2024-12",
+    "github": "https://github.com",
+    "demo": "https://demo.example.com"
+  }
+]
