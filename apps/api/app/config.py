@@ -81,7 +81,7 @@ class Settings(BaseSettings):
     jwt_secret_key: str = Field(default="dev-secret", min_length=1)
     jwt_algorithm: str = Field(default="HS256")
     access_token_expire_minutes: int = Field(default=60, ge=5, le=24 * 60)
-    uploads_dir: Path = Field(default=Path("/data/uploads"))
+    uploads_dir: Path = Field(default=Path("uploads"))
     database_pool_size: int = Field(default=5, ge=1, le=20)
     database_max_overflow: int = Field(default=5, ge=0, le=20)
     database_pool_timeout: int = Field(default=10, ge=1, le=60)
@@ -171,8 +171,17 @@ class Settings(BaseSettings):
     @field_validator("uploads_dir", mode="after")
     @classmethod
     def ensure_uploads_dir(cls, value: Path) -> Path:
+        """Ensure the uploads directory exists, but don't crash if read-only."""
         resolved = value.expanduser().resolve()
-        resolved.mkdir(parents=True, exist_ok=True)
+        try:
+            resolved.mkdir(parents=True, exist_ok=True)
+        except (OSError, PermissionError):
+            # Fallback for serverless/read-only environments like Vercel.
+            # We log a warning but allow the application to start.
+            from logging import getLogger
+            getLogger("app.config").warning(
+                "Could not create uploads_dir at %s (read-only filesystem?)", resolved
+            )
         return resolved
 
     @property
