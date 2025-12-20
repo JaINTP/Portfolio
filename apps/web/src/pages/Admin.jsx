@@ -750,7 +750,6 @@ const Admin = () => {
                 <img
                   src={resolveMediaUrl(blogForm.image)}
                   alt="Blog hero preview"
-                  crossOrigin="anonymous"
                   className="h-24 w-24 object-cover rounded-lg border border-white/10"
                 />
                 <div className="flex flex-col gap-2">
@@ -951,7 +950,6 @@ const Admin = () => {
                 <img
                   src={resolveMediaUrl(projectForm.image)}
                   alt="Project preview"
-                  crossOrigin="anonymous"
                   className="h-24 w-24 object-cover rounded-lg border border-white/10"
                 />
                 <div className="flex flex-col gap-2">
@@ -1147,7 +1145,6 @@ const Admin = () => {
                 <img
                   src={resolveMediaUrl(aboutForm.profileImage)}
                   alt="Profile preview"
-                  crossOrigin="anonymous"
                   className="h-24 w-24 object-cover rounded-lg border border-white/10 shadow-lg shadow-cyan-500/10"
                 />
                 <div className="flex flex-col gap-2">
@@ -1283,7 +1280,6 @@ const Admin = () => {
                   <img
                     src={resolveMediaUrl(aboutForm.dogImage)}
                     alt="Dog preview"
-                    crossOrigin="anonymous"
                     className="h-24 w-24 object-cover rounded-lg border border-white/10"
                   />
                   <div className="flex flex-col gap-2">

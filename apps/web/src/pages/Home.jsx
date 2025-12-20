@@ -161,12 +161,13 @@ const Home = () => {
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <div className="aspect-video overflow-hidden rounded-t-2xl">
-                <img
-                  src={resolveMediaUrl(project.image)}
-                  alt={project.title}
-                  crossOrigin="anonymous"
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                />
+                {project.image && (
+                  <img
+                    src={resolveMediaUrl(project.image)}
+                    alt={project.title}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                )}
               </div>
               <div className="space-y-4 p-6">
                 <span
@@ -251,12 +252,13 @@ const Home = () => {
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <div className="aspect-video overflow-hidden rounded-t-2xl">
-                <img
-                  src={resolveMediaUrl(blog.image)}
-                  alt={blog.title}
-                  crossOrigin="anonymous"
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                />
+                {blog.image && (
+                  <img
+                    src={resolveMediaUrl(blog.image)}
+                    alt={blog.title}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                )}
               </div>
               <div className="space-y-4 p-6">
                 <div className="flex items-center justify-between">

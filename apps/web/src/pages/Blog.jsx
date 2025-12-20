@@ -343,7 +343,6 @@ const Blog = () => {
                       <img
                         src={resolveMediaUrl(blog.image)}
                         alt={blog.title}
-                        crossOrigin="anonymous"
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       />
                     )}

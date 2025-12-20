@@ -85,7 +85,6 @@ const About = () => {
                   <img
                     src={profileImageUrl}
                     alt={profile.name}
-                    crossOrigin="anonymous"
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -184,7 +183,6 @@ const About = () => {
                       <img
                         src={dogImageUrl}
                         alt={dog.name}
-                        crossOrigin="anonymous"
                         className="w-full h-full object-cover"
                       />
                     ) : (

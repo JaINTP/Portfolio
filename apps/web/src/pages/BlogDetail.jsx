@@ -127,12 +127,13 @@ const BlogDetail = () => {
 
         <article className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl overflow-hidden">
           <div className="relative aspect-video">
-            <img
-              src={resolveMediaUrl(blog.image)}
-              alt={blog.title}
-              crossOrigin="anonymous"
-              className="w-full h-full object-cover"
-            />
+            {blog.image && (
+              <img
+                src={resolveMediaUrl(blog.image)}
+                alt={blog.title}
+                className="w-full h-full object-cover"
+              />
+            )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
             <div className="absolute bottom-6 left-6 right-6 flex flex-wrap items-center justify-between gap-4">
               <span
