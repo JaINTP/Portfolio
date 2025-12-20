@@ -10,6 +10,11 @@ const path = require('path');
 const BUILD_DIR = path.resolve(__dirname, '..', 'build');
 const INDEX_FILE = path.join(BUILD_DIR, 'index.html');
 
+if (process.env.VERCEL === '1') {
+  console.log('[csp] Skipping nonce injection for Vercel environment.');
+  process.exit(0);
+}
+
 if (!fs.existsSync(INDEX_FILE)) {
   console.warn('[csp] Skipping nonce injection, build/index.html not found.');
   process.exit(0);

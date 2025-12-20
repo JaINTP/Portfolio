@@ -34,6 +34,17 @@ let apiBase = (process.env.REACT_APP_API_BASE_URL || '').trim();
 if (!apiBase && isVercel) {
   console.log('[env] REACT_APP_API_BASE_URL not set, defaulting to "/api" for Vercel build.');
   apiBase = '/api';
+
+  // Persist the default value so craco build picks it up
+  const fs = require('fs');
+  const path = require('path');
+  const envFile = path.resolve(__dirname, '..', '.env.production.local');
+  try {
+    fs.writeFileSync(envFile, `REACT_APP_API_BASE_URL=${apiBase}\n`, 'utf8');
+    console.log('[env] Persisted default API base to .env.production.local');
+  } catch (error) {
+    console.warn(`[env] Could not persist default API base: ${error.message}`);
+  }
 }
 
 if (!apiBase) {
