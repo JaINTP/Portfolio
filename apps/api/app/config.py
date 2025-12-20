@@ -114,21 +114,33 @@ class Settings(BaseSettings):
         if not value:
             return DEFAULT_DATABASE_URL
 
-        # Handle postgres:// vs postgresql:// and add +asyncpg
-        if value.startswith("postgres://"):
-            value = value.replace("postgres://", "postgresql+asyncpg://", 1)
-        elif value.startswith("postgresql://"):
-            value = value.replace("postgresql://", "postgresql+asyncpg://", 1)
-        elif "postgresql" in value and "+asyncpg" not in value:
-            parts = value.split("://", 1)
-            if len(parts) == 2:
-                value = f"postgresql+asyncpg://{parts[1]}"
+        from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
-        # asyncpg uses 'ssl' instead of 'sslmode'
-        if "sslmode=" in value:
-            value = value.replace("sslmode=require", "ssl=require")
-            # Fallback for other sslmode values if they exist
-            value = value.replace("sslmode=", "ssl=")
+        # 1. Standardize protocol to postgresql+asyncpg
+        if value.startswith("postgres://") or value.startswith("postgresql://"):
+            parsed = urlparse(value)
+            scheme = "postgresql+asyncpg"
+            
+            # 2. Extract and sanitize query parameters
+            query_params = parse_qs(parsed.query)
+            
+            # Convert sslmode -> ssl
+            if "sslmode" in query_params:
+                ssl_val = query_params.pop("sslmode")[0]
+                if ssl_val == "require":
+                    query_params["ssl"] = ["require"]
+                else:
+                    query_params["ssl"] = [ssl_val]
+
+            # 3. Strip unsupported psycopg2 parameters
+            unsupported = {"channel_binding", "target_session_attrs", "gssencmode"}
+            for param in unsupported:
+                query_params.pop(param, None)
+
+            # 4. Reconstruct the URL
+            new_query = urlencode(query_params, doseq=True)
+            new_parts = parsed._replace(scheme=scheme, query=new_query)
+            return urlunparse(new_parts)
 
         return value
 
