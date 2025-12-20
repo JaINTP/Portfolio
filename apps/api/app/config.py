@@ -116,33 +116,33 @@ class Settings(BaseSettings):
 
         from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
+        # Check if the URL is a PostgreSQL variant
+        if not any(value.startswith(p) for p in ("postgres://", "postgresql://", "postgresql+asyncpg://")):
+            return value
+
+        parsed = urlparse(value)
+        
         # 1. Standardize protocol to postgresql+asyncpg
-        if value.startswith("postgres://") or value.startswith("postgresql://"):
-            parsed = urlparse(value)
-            scheme = "postgresql+asyncpg"
-            
-            # 2. Extract and sanitize query parameters
-            query_params = parse_qs(parsed.query)
-            
-            # Convert sslmode -> ssl
-            if "sslmode" in query_params:
-                ssl_val = query_params.pop("sslmode")[0]
-                if ssl_val == "require":
-                    query_params["ssl"] = ["require"]
-                else:
-                    query_params["ssl"] = [ssl_val]
+        scheme = "postgresql+asyncpg"
+        
+        # 2. Extract and sanitize query parameters
+        query_params = parse_qs(parsed.query)
+        
+        # Convert sslmode -> ssl if ssl isn't already set
+        if "sslmode" in query_params:
+            ssl_val = query_params.pop("sslmode")[0]
+            if "ssl" not in query_params:
+                query_params["ssl"] = [ssl_val]
 
-            # 3. Strip unsupported psycopg2 parameters
-            unsupported = {"channel_binding", "target_session_attrs", "gssencmode"}
-            for param in unsupported:
-                query_params.pop(param, None)
+        # 3. Strip known incompatible psycopg2 parameters
+        unsupported = {"channel_binding", "target_session_attrs", "gssencmode", "sslmode"}
+        for param in unsupported:
+            query_params.pop(param, None)
 
-            # 4. Reconstruct the URL
-            new_query = urlencode(query_params, doseq=True)
-            new_parts = parsed._replace(scheme=scheme, query=new_query)
-            return urlunparse(new_parts)
-
-        return value
+        # 4. Reconstruct the URL
+        new_query = urlencode(query_params, doseq=True)
+        new_parts = parsed._replace(scheme=scheme, query=new_query)
+        return urlunparse(new_parts)
 
     @field_validator("development_origins", mode="before")
     @classmethod
