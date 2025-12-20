@@ -108,6 +108,30 @@ class Settings(BaseSettings):
     api_rate_limit_burst: int = Field(default=240, ge=1)
     login_rate_limit: str = Field(default="10/minute")
 
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def ensure_asyncpg_protocol(cls, value: str | None) -> str:
+        if not value:
+            return DEFAULT_DATABASE_URL
+
+        # Handle postgres:// vs postgresql:// and add +asyncpg
+        if value.startswith("postgres://"):
+            value = value.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif value.startswith("postgresql://"):
+            value = value.replace("postgresql://", "postgresql+asyncpg://", 1)
+        elif "postgresql" in value and "+asyncpg" not in value:
+            parts = value.split("://", 1)
+            if len(parts) == 2:
+                value = f"postgresql+asyncpg://{parts[1]}"
+
+        # asyncpg uses 'ssl' instead of 'sslmode'
+        if "sslmode=" in value:
+            value = value.replace("sslmode=require", "ssl=require")
+            # Fallback for other sslmode values if they exist
+            value = value.replace("sslmode=", "ssl=")
+
+        return value
+
     @field_validator("development_origins", mode="before")
     @classmethod
     def parse_development_origins(cls, value: Iterable[str] | str | None) -> list[str]:
