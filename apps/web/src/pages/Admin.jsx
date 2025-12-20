@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Save, Plus, Trash2, LogOut, RefreshCcw } from 'lucide-react';
 import { api } from '../lib/api';
+import { resolveMediaUrl } from '../lib/utils';
 
 const emptyBlogForm = {
   title: '',
@@ -223,15 +224,6 @@ const Admin = () => {
     }
   };
 
-  const resolveMediaUrl = (value) => {
-    if (!value) return '';
-    if (/^https?:\/\//i.test(value)) return value;
-    const normalized = value.startsWith('/') ? value : `/${value}`;
-    if (typeof window === 'undefined') {
-      return normalized;
-    }
-    return `${window.location.origin}${normalized}`;
-  };
 
   const handleProfileImageFileChange = async (event) => {
     if (!hasSession) {
@@ -959,6 +951,7 @@ const Admin = () => {
                 <img
                   src={resolveMediaUrl(projectForm.image)}
                   alt="Project preview"
+                  crossOrigin="anonymous"
                   className="h-24 w-24 object-cover rounded-lg border border-white/10"
                 />
                 <div className="flex flex-col gap-2">
@@ -1155,7 +1148,7 @@ const Admin = () => {
                   src={resolveMediaUrl(aboutForm.profileImage)}
                   alt="Profile preview"
                   crossOrigin="anonymous"
-                  className="h-24 w-24 object-cover rounded-xl border border-white/10"
+                  className="h-24 w-24 object-cover rounded-lg border border-white/10 shadow-lg shadow-cyan-500/10"
                 />
                 <div className="flex flex-col gap-2">
                   <code className="text-xs text-gray-400 bg-black/30 px-2 py-1 rounded">
@@ -1291,7 +1284,7 @@ const Admin = () => {
                     src={resolveMediaUrl(aboutForm.dogImage)}
                     alt="Dog preview"
                     crossOrigin="anonymous"
-                    className="h-24 w-24 object-cover rounded-xl border border-white/10"
+                    className="h-24 w-24 object-cover rounded-lg border border-white/10"
                   />
                   <div className="flex flex-col gap-2">
                     <code className="text-xs text-gray-400 bg-black/30 px-2 py-1 rounded">

@@ -4,6 +4,7 @@ import { Clock, Calendar, Tag, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '../lib/api';
 import ResponsiveSection from '../components/layout/ResponsiveSection';
 import { useBreakpoint } from '../hooks/use-breakpoint';
+import { resolveMediaUrl } from '../lib/utils';
 
 const Blog = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -169,8 +170,8 @@ const Blog = () => {
         key={category.id}
         onClick={() => setSelectedCategory(category.id)}
         className={`${baseClasses} ${options.extraClasses ?? ''} ${isActive
-            ? 'text-black shadow-lg'
-            : 'border-white/10 bg-white/5 text-gray-300 hover:bg-white/10'
+          ? 'text-black shadow-lg'
+          : 'border-white/10 bg-white/5 text-gray-300 hover:bg-white/10'
           }`}
         style={
           isActive
@@ -249,8 +250,8 @@ const Blog = () => {
                 type="button"
                 onClick={() => setSelectedCategory('all')}
                 className={`rounded-full px-6 py-3 text-sm font-semibold transition-all duration-300 ${selectedCategory === 'all'
-                    ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/50'
-                    : 'border border-white/10 bg-white/5 text-gray-300 hover:bg-white/10'
+                  ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/50'
+                  : 'border border-white/10 bg-white/5 text-gray-300 hover:bg-white/10'
                   }`}
               >
                 All Posts
@@ -340,7 +341,7 @@ const Blog = () => {
                   <div className="aspect-video overflow-hidden relative">
                     {blog.image && (
                       <img
-                        src={blog.image}
+                        src={resolveMediaUrl(blog.image)}
                         alt={blog.title}
                         crossOrigin="anonymous"
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"

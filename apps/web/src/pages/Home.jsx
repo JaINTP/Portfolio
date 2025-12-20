@@ -4,6 +4,7 @@ import { ArrowRight, Github, ExternalLink, Clock } from 'lucide-react';
 import ResponsiveSection from '../components/layout/ResponsiveSection';
 import { useBreakpoint } from '../hooks/use-breakpoint';
 import { api } from '../lib/api';
+import { resolveMediaUrl } from '../lib/utils';
 
 const Home = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -160,14 +161,12 @@ const Home = () => {
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <div className="aspect-video overflow-hidden rounded-t-2xl">
-                {project.image && (
-                  <img
-                    src={project.image}
-                    alt={project.title}
-                    crossOrigin="anonymous"
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                )}
+                <img
+                  src={resolveMediaUrl(project.image)}
+                  alt={project.title}
+                  crossOrigin="anonymous"
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
               </div>
               <div className="space-y-4 p-6">
                 <span
@@ -252,14 +251,12 @@ const Home = () => {
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <div className="aspect-video overflow-hidden rounded-t-2xl">
-                {blog.image && (
-                  <img
-                    src={blog.image}
-                    alt={blog.title}
-                    crossOrigin="anonymous"
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                )}
+                <img
+                  src={resolveMediaUrl(blog.image)}
+                  alt={blog.title}
+                  crossOrigin="anonymous"
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
               </div>
               <div className="space-y-4 p-6">
                 <div className="flex items-center justify-between">

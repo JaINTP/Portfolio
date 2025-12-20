@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Mail, MapPin, Github, Linkedin, Twitter, Award } from 'lucide-react';
 import { api } from '../lib/api';
 import { sanitizeHtml } from '../lib/sanitizeHtml';
+import { resolveMediaUrl } from '../lib/utils';
 import ResponsiveSection from '../components/layout/ResponsiveSection';
 
 const About = () => {
@@ -60,18 +61,8 @@ const About = () => {
   }
 
   const { social = {}, dog } = profile;
-  const buildMediaUrl = (value) => {
-    if (!value) return null;
-    if (/^https?:\/\//i.test(value)) return value;
-    const normalized = value.startsWith('/') ? value : `/${value}`;
-    if (typeof window === 'undefined') {
-      return normalized;
-    }
-    return `${window.location.origin}${normalized}`;
-  };
-
-  const profileImageUrl = buildMediaUrl(profile.profile_image);
-  const dogImageUrl = buildMediaUrl(dog?.image);
+  const profileImageUrl = resolveMediaUrl(profile.profile_image);
+  const dogImageUrl = resolveMediaUrl(dog?.image);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-gray-950 to-black pt-24 pb-16">

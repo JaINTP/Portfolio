@@ -4,6 +4,7 @@ import { Calendar, Tag, ArrowLeft, Github, ExternalLink } from 'lucide-react';
 import { api } from '../lib/api';
 import { sanitizeHtml } from '../lib/sanitizeHtml';
 import ResponsiveSection from '../components/layout/ResponsiveSection';
+import { resolveMediaUrl } from '../lib/utils';
 import hljs from 'highlight.js/lib/common';
 import 'highlight.js/styles/github-dark.css';
 
@@ -131,14 +132,12 @@ const ProjectDetail = () => {
 
         <article className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl overflow-hidden">
           <div className="relative aspect-video">
-            {project.image && (
-              <img
-                src={project.image}
-                alt={project.title}
-                crossOrigin="anonymous"
-                className="w-full h-full object-cover"
-              />
-            )}
+            <img
+              src={resolveMediaUrl(project.image)}
+              alt={project.title}
+              crossOrigin="anonymous"
+              className="w-full h-full object-cover"
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
             <div className="absolute bottom-6 left-6 right-6 flex flex-wrap items-center justify-between gap-4">
               <span

@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Calendar, Clock, Tag, ArrowLeft } from 'lucide-react';
 import { api } from '../lib/api';
-import { sanitizeHtml } from '../lib/sanitizeHtml';
 import ResponsiveSection from '../components/layout/ResponsiveSection';
+import { resolveMediaUrl } from '../lib/utils';
 import hljs from 'highlight.js/lib/common';
 import 'highlight.js/styles/github-dark.css';
 
@@ -127,7 +127,7 @@ const BlogDetail = () => {
         <article className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl overflow-hidden">
           <div className="relative aspect-video">
             <img
-              src={blog.image}
+              src={resolveMediaUrl(blog.image)}
               alt={blog.title}
               crossOrigin="anonymous"
               className="w-full h-full object-cover"
