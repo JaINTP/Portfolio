@@ -6,7 +6,7 @@ import json
 import os
 from functools import lru_cache
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Literal
  
 from urllib.parse import urlparse
  
@@ -105,6 +105,23 @@ class Settings(BaseSettings):
     session_cookie_domain: str | None = Field(default=None)
     session_cookie_max_age_seconds: int = Field(default=3600, ge=300)
     forwarded_allow_ips: str = Field(default="127.0.0.1")
+    
+    # Storage Configuration
+    storage_type: Literal["local", "s3"] = Field(
+        default="local",
+        description="Backend storage type for uploads. Use 's3' for cloud storage.",
+    )
+    s3_bucket: str = Field(default="")
+    s3_region: str = Field(default="auto")
+    s3_access_key_id: str = Field(default="")
+    s3_secret_access_key: str = Field(default="")
+    s3_endpoint_url: str | None = Field(
+        default=None, 
+        alias="S3_ENDPOINT_URL",
+        description="Required for R2 (e.g. https://<id>.r2.cloudflarestorage.com)"
+    )
+    s3_custom_domain: str | None = Field(default=None)
+
     api_rate_limit: str = Field(default="120/minute")
     api_rate_limit_burst: int = Field(default=240, ge=1)
     login_rate_limit: str = Field(default="10/minute")
@@ -270,6 +287,13 @@ class Settings(BaseSettings):
                 raise ValueError("SESSION_SECRET_KEY must be set for secure cookies.")
             if not self.admin_password_hash:
                 raise ValueError("ADMIN_PASSWORD_HASH must be set for the administrative user.")
+        
+        # S3 validation is required even in development if STORAGE_TYPE=s3
+        if self.storage_type == "s3":
+            if not all([self.s3_bucket, self.s3_access_key_id, self.s3_secret_access_key]):
+                raise ValueError(
+                    "S3_BUCKET, S3_ACCESS_KEY_ID, and S3_SECRET_ACCESS_KEY must be set when STORAGE_TYPE=s3"
+                )
         return self
 
     @classmethod

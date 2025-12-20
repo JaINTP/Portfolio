@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from ..config import get_settings
 from ..security import require_admin
 from ..utils import sanitize_media_path
+from ..utils.storage import get_storage_provider
 
 ALLOWED_CONTENT_TYPES: dict[str, str] = {
     "image/jpeg": ".jpg",
@@ -33,20 +34,9 @@ class UploadResponse(BaseModel):
 router = APIRouter(prefix="/uploads", tags=["uploads"])
 
 
-def _ensure_within_directory(base: Path, target: Path) -> None:
-    """Ensure target is inside the base directory."""
-
-    if base not in target.resolve().parents and target.resolve() != base.resolve():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid upload path.",
-        )
-
-
 async def _store_image(file: UploadFile, *, subdir: str | None, prefix: str) -> str:
-    """Persist an uploaded image under the configured uploads directory."""
+    """Persist an uploaded image using the configured storage provider."""
 
-    settings = get_settings()
     content_type = file.content_type or ""
     if content_type not in ALLOWED_CONTENT_TYPES:
         raise HTTPException(
@@ -54,39 +44,25 @@ async def _store_image(file: UploadFile, *, subdir: str | None, prefix: str) -> 
             detail="Unsupported image type. Use JPEG, PNG, WEBP, or GIF.",
         )
 
+    # Check file size before uploading
+    content = await file.read()
+    if len(content) > MAX_UPLOAD_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Image exceeds 5 MB limit.",
+        )
+    
+    # Reset file pointer if necessary (though we already read everything into 'content')
+    import io
+    file_obj = io.BytesIO(content)
+
     extension = ALLOWED_CONTENT_TYPES[content_type]
     filename = f"{prefix}_{uuid4().hex}{extension}"
 
-    base_dir = settings.uploads_dir
-    target_dir = base_dir
-    relative_dir = "uploads"
-    if subdir:
-        safe_subdir = Path(subdir.strip("/"))
-        target_dir = base_dir / safe_subdir
-        relative_dir = f"uploads/{safe_subdir.as_posix()}"
+    storage = get_storage_provider()
+    url = await storage.upload(file_obj, filename, subdir=subdir)
 
-    target_dir.mkdir(parents=True, exist_ok=True)
-
-    destination = target_dir / filename
-    _ensure_within_directory(base_dir, destination)
-
-    size = 0
-    with destination.open("wb") as buffer:
-        while True:
-            chunk = await file.read(1 << 20)  # 1 MB
-            if not chunk:
-                break
-            size += len(chunk)
-            if size > MAX_UPLOAD_SIZE:
-                destination.unlink(missing_ok=True)
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Image exceeds 5 MB limit.",
-                )
-            buffer.write(chunk)
-
-    relative_url = sanitize_media_path(f"/{relative_dir}/{filename}")
-    return relative_url
+    return url
 
 
 @router.post(
@@ -100,7 +76,22 @@ async def upload_profile_image(
 ) -> UploadResponse:
     """Store profile image in the shared uploads directory and return its public URL."""
 
-    url = await _store_image(file, subdir=None, prefix="profile")
+    url = await _store_image(file, subdir="profile", prefix="profile")
+    return UploadResponse(url=url)
+
+
+@router.post(
+    "/about/image",
+    response_model=UploadResponse,
+    summary="Upload an image for the About page.",
+    dependencies=[Depends(require_admin)],
+)
+async def upload_about_image(
+    file: UploadFile = File(...),
+) -> UploadResponse:
+    """Store about imagery under a dedicated directory."""
+
+    url = await _store_image(file, subdir="about", prefix="about")
     return UploadResponse(url=url)
 
 
@@ -115,7 +106,7 @@ async def upload_blog_image(
 ) -> UploadResponse:
     """Store blog imagery under a dedicated directory."""
 
-    url = await _store_image(file, subdir="blogs", prefix="blog")
+    url = await _store_image(file, subdir="blog", prefix="blog")
     return UploadResponse(url=url)
 
 
