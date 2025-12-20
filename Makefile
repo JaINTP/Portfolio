@@ -20,12 +20,6 @@ backend-bandit:
 backend-audit:
 	@cd apps/api && $(PYTHON) -m pip install --require-hashes -r requirements-dev.lock && pip-audit --require-hashes -r requirements.lock
 
-docker-build:
-	@docker compose build --no-cache
-
-docker-scan:
-	@docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.56.2 image --exit-code 1 --severity HIGH,CRITICAL portfolio-web:latest
-
 security-check: frontend-lint frontend-audit backend-bandit backend-audit
 
 verify-security:
