@@ -29,7 +29,7 @@ SECURITY_HEADERS = {
         "base-uri 'none'; "
         "form-action 'self'; "
         "connect-src 'self'; "
-        "img-src 'none'; "
+        "img-src 'self' data: https:; "
         "script-src 'none'; "
         "style-src 'none';"
     ),
@@ -43,10 +43,9 @@ SECURITY_HEADERS = {
         "midi=(), payment=(), usb=()"
     ),
     "Cross-Origin-Opener-Policy": "same-origin",
-    "Cross-Origin-Resource-Policy": "same-site",
+    "Cross-Origin-Resource-Policy": "cross-origin",
     "Cross-Origin-Embedder-Policy": "require-corp",
     "X-Permitted-Cross-Domain-Policies": "none",
-    "X-Content-Type-Options": "nosniff",
 }
 
 

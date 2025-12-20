@@ -512,12 +512,12 @@ const Admin = () => {
       },
       dog: aboutForm.dogName
         ? {
-            name: aboutForm.dogName.trim(),
-            role: aboutForm.dogRole.trim(),
-            bio: aboutForm.dogBio,
-            image: aboutForm.dogImage.trim() || null,
-            skills: toList(aboutForm.dogSkills),
-          }
+          name: aboutForm.dogName.trim(),
+          role: aboutForm.dogRole.trim(),
+          bio: aboutForm.dogBio,
+          image: aboutForm.dogImage.trim() || null,
+          skills: toList(aboutForm.dogSkills),
+        }
         : null,
     };
 
@@ -540,11 +540,10 @@ const Admin = () => {
     <button
       key={id}
       onClick={() => setActiveTab(id)}
-      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-        activeTab === id
-          ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/50'
-          : 'text-gray-300 hover:text-white hover:bg-white/10'
-      }`}
+      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === id
+        ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/50'
+        : 'text-gray-300 hover:text-white hover:bg-white/10'
+        }`}
     >
       {label}
     </button>
@@ -711,54 +710,55 @@ const Admin = () => {
                 className="px-4 py-2 rounded-lg bg-black/40 border border-white/10 text-white focus:outline-none focus:border-cyan-400"
                 required
               />
-            <input
-              type="text"
-              value={blogForm.read_time}
-              onChange={(event) =>
-                setBlogForm((prev) => ({ ...prev, read_time: event.target.value }))
-              }
-              placeholder="Read time (e.g. 5 min)"
-              className="px-4 py-2 rounded-lg bg-black/40 border border-white/10 text-white focus:outline-none focus:border-cyan-400"
-              required
-            />
-          </div>
-          <div className="space-y-3">
-            <label className="text-sm text-gray-300">Hero image</label>
-            <div className="flex flex-wrap items-center gap-3">
               <input
                 type="text"
-                value={blogForm.image}
+                value={blogForm.read_time}
                 onChange={(event) =>
-                  setBlogForm((prev) => ({ ...prev, image: event.target.value }))
+                  setBlogForm((prev) => ({ ...prev, read_time: event.target.value }))
                 }
-                placeholder="Hero image URL or path"
-                className="flex-1 min-w-[12rem] px-4 py-2 rounded-lg bg-black/40 border border-white/10 text-white focus:outline-none focus:border-cyan-400"
+                placeholder="Read time (e.g. 5 min)"
+                className="px-4 py-2 rounded-lg bg-black/40 border border-white/10 text-white focus:outline-none focus:border-cyan-400"
+                required
               />
-              <input
-                ref={blogImageInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/gif"
-                className="hidden"
-                onChange={handleBlogImageFileChange}
-              />
-              <button
-                type="button"
-                onClick={handleBlogImageUploadClick}
-                className="inline-flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 text-gray-200 rounded-lg transition-colors"
-                disabled={blogImageUploading}
-              >
-                Upload
-              </button>
-              {blogImageUploading && (
-                <span className="text-sm text-gray-400">Uploading…</span>
-              )}
             </div>
-          </div>
-          {blogForm.image && (
-            <div className="flex flex-wrap items-center gap-4 rounded-lg border border-white/10 bg-black/30 p-4">
-              <img
-                src={resolveMediaUrl(blogForm.image)}
-                alt="Blog hero preview"
+            <div className="space-y-3">
+              <label className="text-sm text-gray-300">Hero image</label>
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  type="text"
+                  value={blogForm.image}
+                  onChange={(event) =>
+                    setBlogForm((prev) => ({ ...prev, image: event.target.value }))
+                  }
+                  placeholder="Hero image URL or path"
+                  className="flex-1 min-w-[12rem] px-4 py-2 rounded-lg bg-black/40 border border-white/10 text-white focus:outline-none focus:border-cyan-400"
+                />
+                <input
+                  ref={blogImageInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  className="hidden"
+                  onChange={handleBlogImageFileChange}
+                />
+                <button
+                  type="button"
+                  onClick={handleBlogImageUploadClick}
+                  className="inline-flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 text-gray-200 rounded-lg transition-colors"
+                  disabled={blogImageUploading}
+                >
+                  Upload
+                </button>
+                {blogImageUploading && (
+                  <span className="text-sm text-gray-400">Uploading…</span>
+                )}
+              </div>
+            </div>
+            {blogForm.image && (
+              <div className="flex flex-wrap items-center gap-4 rounded-lg border border-white/10 bg-black/30 p-4">
+                <img
+                  src={resolveMediaUrl(blogForm.image)}
+                  alt="Blog hero preview"
+                  crossOrigin="anonymous"
                   className="h-24 w-24 object-cover rounded-lg border border-white/10"
                 />
                 <div className="flex flex-col gap-2">
@@ -1154,6 +1154,7 @@ const Admin = () => {
                 <img
                   src={resolveMediaUrl(aboutForm.profileImage)}
                   alt="Profile preview"
+                  crossOrigin="anonymous"
                   className="h-24 w-24 object-cover rounded-xl border border-white/10"
                 />
                 <div className="flex flex-col gap-2">
@@ -1289,6 +1290,7 @@ const Admin = () => {
                   <img
                     src={resolveMediaUrl(aboutForm.dogImage)}
                     alt="Dog preview"
+                    crossOrigin="anonymous"
                     className="h-24 w-24 object-cover rounded-xl border border-white/10"
                   />
                   <div className="flex flex-col gap-2">

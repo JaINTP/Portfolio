@@ -168,23 +168,22 @@ const Blog = () => {
         type="button"
         key={category.id}
         onClick={() => setSelectedCategory(category.id)}
-        className={`${baseClasses} ${options.extraClasses ?? ''} ${
-          isActive
+        className={`${baseClasses} ${options.extraClasses ?? ''} ${isActive
             ? 'text-black shadow-lg'
             : 'border-white/10 bg-white/5 text-gray-300 hover:bg-white/10'
-        }`}
+          }`}
         style={
           isActive
             ? {
-                backgroundColor:
-                  color === 'amber'
-                    ? '#f59e0b'
-                    : color === 'cyan'
-                      ? '#06b6d4'
-                      : color === 'emerald'
-                        ? '#10b981'
-                        : '#8b5cf6',
-              }
+              backgroundColor:
+                color === 'amber'
+                  ? '#f59e0b'
+                  : color === 'cyan'
+                    ? '#06b6d4'
+                    : color === 'emerald'
+                      ? '#10b981'
+                      : '#8b5cf6',
+            }
             : {}
         }
       >
@@ -249,11 +248,10 @@ const Blog = () => {
               <button
                 type="button"
                 onClick={() => setSelectedCategory('all')}
-                className={`rounded-full px-6 py-3 text-sm font-semibold transition-all duration-300 ${
-                  selectedCategory === 'all'
+                className={`rounded-full px-6 py-3 text-sm font-semibold transition-all duration-300 ${selectedCategory === 'all'
                     ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/50'
                     : 'border border-white/10 bg-white/5 text-gray-300 hover:bg-white/10'
-                }`}
+                  }`}
               >
                 All Posts
               </button>
@@ -344,6 +342,7 @@ const Blog = () => {
                       <img
                         src={blog.image}
                         alt={blog.title}
+                        crossOrigin="anonymous"
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       />
                     )}
@@ -381,10 +380,10 @@ const Blog = () => {
                         <Calendar className="w-3 h-3" />
                         {blog.published_at
                           ? new Date(blog.published_at).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                            })
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                          })
                           : '—'}
                       </span>
                       <span className="flex items-center gap-1">

@@ -94,6 +94,7 @@ const About = () => {
                   <img
                     src={profileImageUrl}
                     alt={profile.name}
+                    crossOrigin="anonymous"
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -105,7 +106,7 @@ const About = () => {
               className="text-gray-300 leading-relaxed mb-8 prose prose-invert max-w-none"
               dangerouslySetInnerHTML={{ __html: safeProfileBio }}
             />
-            
+
             <div className="space-y-4 mb-8">
               <div className="flex items-center gap-3 text-gray-300">
                 <Mail className="w-5 h-5 text-cyan-400" />
@@ -184,53 +185,54 @@ const About = () => {
           </h2>
           {dog ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            {/* Dog Image */}
-            <div className="order-2 lg:order-1">
-              <div className="relative">
-                <div className="aspect-square rounded-2xl overflow-hidden border-4 border-cyan-400/30 shadow-2xl shadow-cyan-500/20">
-                  {dogImageUrl ? (
-                    <img
-                      src={dogImageUrl}
-                      alt={dog.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-black/40 flex items-center justify-center text-sm text-gray-500">
-                      No image
-                    </div>
-                  )}
-                </div>
-                <div className="absolute -bottom-4 -right-4 bg-cyan-500 text-black px-6 py-3 rounded-lg font-bold text-lg shadow-lg">
-                  {dog.name}
+              {/* Dog Image */}
+              <div className="order-2 lg:order-1">
+                <div className="relative">
+                  <div className="aspect-square rounded-2xl overflow-hidden border-4 border-cyan-400/30 shadow-2xl shadow-cyan-500/20">
+                    {dogImageUrl ? (
+                      <img
+                        src={dogImageUrl}
+                        alt={dog.name}
+                        crossOrigin="anonymous"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-black/40 flex items-center justify-center text-sm text-gray-500">
+                        No image
+                      </div>
+                    )}
+                  </div>
+                  <div className="absolute -bottom-4 -right-4 bg-cyan-500 text-black px-6 py-3 rounded-lg font-bold text-lg shadow-lg">
+                    {dog.name}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Dog Info */}
-            <div className="order-1 lg:order-2">
-              <div className="inline-block px-4 py-2 bg-amber-400/10 text-amber-400 rounded-full border border-amber-400/20 text-sm font-medium mb-4">
-                {dog.role}
-              </div>
-              <h3 className="text-3xl font-bold text-white mb-4">{dog.name}</h3>
-              <div
-                className="text-gray-300 text-lg leading-relaxed mb-8 prose prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: safeDogBio }}
-              />
-              
-              <div className="space-y-3">
-                <h4 className="text-xl font-semibold text-cyan-400 mb-4">Special Skills:</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  {dog.skills?.map((skill, index) => (
-                    <div
-                      key={index}
-                      className="bg-white/5 border border-white/10 rounded-lg p-3 text-gray-300 text-sm hover:bg-white/10 transition-colors"
-                    >
-                      ✓ {skill}
-                    </div>
-                  ))}
+              {/* Dog Info */}
+              <div className="order-1 lg:order-2">
+                <div className="inline-block px-4 py-2 bg-amber-400/10 text-amber-400 rounded-full border border-amber-400/20 text-sm font-medium mb-4">
+                  {dog.role}
+                </div>
+                <h3 className="text-3xl font-bold text-white mb-4">{dog.name}</h3>
+                <div
+                  className="text-gray-300 text-lg leading-relaxed mb-8 prose prose-invert max-w-none"
+                  dangerouslySetInnerHTML={{ __html: safeDogBio }}
+                />
+
+                <div className="space-y-3">
+                  <h4 className="text-xl font-semibold text-cyan-400 mb-4">Special Skills:</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    {dog.skills?.map((skill, index) => (
+                      <div
+                        key={index}
+                        className="bg-white/5 border border-white/10 rounded-lg p-3 text-gray-300 text-sm hover:bg-white/10 transition-colors"
+                      >
+                        ✓ {skill}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
             </div>
           ) : (
             <div className="text-center text-gray-300">

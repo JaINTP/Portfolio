@@ -83,35 +83,35 @@ const BlogDetail = () => {
 
   if (loading) {
     return (
-    <div className="min-h-screen bg-gradient-to-b from-black via-gray-950 to-black pt-24 pb-16">
-      <ResponsiveSection as="section" width="narrow" className="py-0">
-        <div className="text-center">
-          <p className="text-gray-400 text-lg">Loading post...</p>
-        </div>
-      </ResponsiveSection>
-    </div>
-  );
-}
+      <div className="min-h-screen bg-gradient-to-b from-black via-gray-950 to-black pt-24 pb-16">
+        <ResponsiveSection as="section" width="narrow" className="py-0">
+          <div className="text-center">
+            <p className="text-gray-400 text-lg">Loading post...</p>
+          </div>
+        </ResponsiveSection>
+      </div>
+    );
+  }
 
   if (error || !blog) {
     return (
-    <div className="min-h-screen bg-gradient-to-b from-black via-gray-950 to-black pt-24 pb-16">
-      <ResponsiveSection as="section" width="narrow" className="py-0">
-        <Link
-          to="/blog"
-          className="inline-flex items-center gap-2 text-sm text-gray-300 hover:text-cyan-400 transition-colors mb-8"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Blog
-        </Link>
+      <div className="min-h-screen bg-gradient-to-b from-black via-gray-950 to-black pt-24 pb-16">
+        <ResponsiveSection as="section" width="narrow" className="py-0">
+          <Link
+            to="/blog"
+            className="inline-flex items-center gap-2 text-sm text-gray-300 hover:text-cyan-400 transition-colors mb-8"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Blog
+          </Link>
           <div className="bg-white/5 border border-white/10 rounded-2xl p-10 text-center text-gray-300">
             <h1 className="text-3xl font-bold text-white mb-4">Post not found</h1>
             <p>{error || "We couldn't find the blog post you were looking for."}</p>
-        </div>
-      </ResponsiveSection>
-    </div>
-  );
-}
+          </div>
+        </ResponsiveSection>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-gray-950 to-black pt-24 pb-16">
@@ -129,6 +129,7 @@ const BlogDetail = () => {
             <img
               src={blog.image}
               alt={blog.title}
+              crossOrigin="anonymous"
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />

@@ -81,9 +81,8 @@ const Home = () => {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#1a1a1a_1px,transparent_1px),linear-gradient(to_bottom,#1a1a1a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,#000_70%,transparent_110%)]" />
 
         <div
-          className={`relative transition-all duration-1000 ${
-            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-          }`}
+          className={`relative transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+            }`}
         >
           <div className="mx-auto max-w-4xl space-y-6 text-left md:text-center">
             <p className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-1 text-xs font-semibold uppercase tracking-widest text-gray-300 backdrop-blur">
@@ -156,9 +155,8 @@ const Home = () => {
             <Link
               key={project.id}
               to={`/projects/${project.id}`}
-              className={`group rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/50 hover:shadow-2xl hover:shadow-cyan-500/20 ${
-                isMobile ? 'min-w-[85%] snap-center' : ''
-              }`}
+              className={`group rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/50 hover:shadow-2xl hover:shadow-cyan-500/20 ${isMobile ? 'min-w-[85%] snap-center' : ''
+                }`}
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <div className="aspect-video overflow-hidden rounded-t-2xl">
@@ -166,6 +164,7 @@ const Home = () => {
                   <img
                     src={project.image}
                     alt={project.title}
+                    crossOrigin="anonymous"
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />
                 )}
@@ -248,9 +247,8 @@ const Home = () => {
             <Link
               key={blog.id}
               to={`/blog/${blog.id}`}
-              className={`group rounded-2xl border border-white/10 bg-black/60 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/50 hover:shadow-2xl hover:shadow-cyan-500/20 ${
-                isMobile ? 'min-w-[85%] snap-center' : ''
-              }`}
+              className={`group rounded-2xl border border-white/10 bg-black/60 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/50 hover:shadow-2xl hover:shadow-cyan-500/20 ${isMobile ? 'min-w-[85%] snap-center' : ''
+                }`}
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <div className="aspect-video overflow-hidden rounded-t-2xl">
@@ -258,6 +256,7 @@ const Home = () => {
                   <img
                     src={blog.image}
                     alt={blog.title}
+                    crossOrigin="anonymous"
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />
                 )}
@@ -285,10 +284,10 @@ const Home = () => {
                 <time className="text-xs text-gray-500">
                   {blog.published_at
                     ? new Date(blog.published_at).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })
                     : '—'}
                 </time>
               </div>
