@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import json
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Iterable
-
+ 
 from urllib.parse import urlparse
-
-from pydantic import AliasChoices, AnyHttpUrl, EmailStr, Field, field_validator, model_validator
+ 
+from pydantic import AliasChoices, AnyHttpUrl, EmailStr, Field, field_validator, model_validator, ValidationInfo
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic_settings.sources import DotEnvSettingsSource, EnvSettingsSource
 
@@ -182,9 +183,13 @@ class Settings(BaseSettings):
 
     @field_validator("trusted_hosts", "trusted_proxies")
     @classmethod
-    def ensure_non_empty(cls, value: list[str]) -> list[str]:
-        if not value:
-            raise ValueError("Trusted host/proxy lists must not be empty.")
+    def ensure_non_empty(cls, value: list[str], info: ValidationInfo) -> list[str]:
+        # Allow empty trusted_hosts if we are in development or if it's explicitly managed
+        if info.field_name == "trusted_proxies" and not value:
+            raise ValueError("Trusted proxy lists must not be empty.")
+        
+        # We allow empty trusted_hosts here because we might populate it 
+        # based on environment (e.g. Vercel) in the model_validator.
         return value
 
     @field_validator("environment")
@@ -232,6 +237,20 @@ class Settings(BaseSettings):
             for origin in additional:
                 origins.add(str(origin).rstrip("/"))
         return sorted(origins)
+
+    @model_validator(mode="after")
+    def adjust_for_vercel(self) -> "Settings":
+        """Automatically trust Vercel domains if running in that environment."""
+        if os.getenv("VERCEL") == "1":
+            # Add *.vercel.app to trusted hosts if not already there or if wildcard not present
+            if "*" not in self.trusted_hosts and "*.vercel.app" not in self.trusted_hosts:
+                self.trusted_hosts.append("*.vercel.app")
+            
+            # Vercel deployments often need to trust all proxies for X-Forwarded-For
+            if "*" not in self.trusted_proxies:
+                self.trusted_proxies.append("*")
+        
+        return self
 
     @model_validator(mode="after")
     def check_required_secrets(self) -> "Settings":
