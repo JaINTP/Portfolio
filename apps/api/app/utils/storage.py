@@ -100,6 +100,36 @@ class S3StorageProvider(StorageProvider):
             
         return f"https://{self.bucket}.s3.{self.region}.amazonaws.com/{key}"
 
+def resolve_storage_url(url: str | None) -> str | None:
+    """
+    Rewrite legacy or internal storage URLs to public URLs if configured.
+    
+    Specifically handles Cloudflare R2 S3-compatibility URLs that are blocked
+    by CORS/ORB when used directly in the browser.
+    """
+    if not url:
+        return url
+        
+    from ..config import get_settings
+    settings = get_settings()
+
+    # Only rewrite if a custom domain or public subdomain is configured
+    if not settings.s3_custom_domain:
+        return url
+
+    # Check for legacy Cloudflare R2 S3-style URLs
+    # Format: https://<account_id>.r2.cloudflarestorage.com/<bucket>/<key>
+    if ".r2.cloudflarestorage.com/" in url:
+        parts = url.split(".r2.cloudflarestorage.com/", 1)
+        if len(parts) == 2:
+            # strip leading bucket name if present in path
+            path_parts = parts[1].split("/", 1)
+            if len(path_parts) == 2 and path_parts[0] == settings.s3_bucket:
+                key = path_parts[1]
+                return f"{settings.s3_custom_domain.rstrip('/')}/{key}"
+            
+    return url
+
 def get_storage_provider() -> StorageProvider:
     """Factory function to get the configured storage provider."""
     from ..config import get_settings

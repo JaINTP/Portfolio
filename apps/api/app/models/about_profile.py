@@ -12,7 +12,13 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..db import BaseModel as ORMBase
-from ..utils import sanitize_media_path, sanitize_plain_text, sanitize_rich_text, sanitize_url
+from ..utils import (
+    resolve_storage_url,
+    sanitize_media_path,
+    sanitize_plain_text,
+    sanitize_rich_text,
+    sanitize_url,
+)
 
 
 class DogProfile(BaseModel):
@@ -41,12 +47,10 @@ class DogProfile(BaseModel):
             return []
         return [sanitize_plain_text(str(skill)) for skill in value]
 
-    @field_validator("image", mode="before")
+    @field_validator("image", mode="after")
     @classmethod
-    def _sanitise_image(cls, value: Optional[str]) -> Optional[str]:
-        if value in (None, ""):
-            return None
-        return sanitize_media_path(value)
+    def _resolve_image_url(cls, value: Optional[str]) -> Optional[str]:
+        return resolve_storage_url(value)
 
 
 class SocialLinks(BaseModel):
@@ -131,12 +135,10 @@ class AboutProfileBase(BaseModel):
             return []
         return [sanitize_plain_text(str(skill)) for skill in value]
 
-    @field_validator("profile_image", mode="before")
+    @field_validator("profile_image", mode="after")
     @classmethod
-    def _sanitise_profile_image(cls, value: Optional[str]) -> Optional[str]:
-        if value in (None, ""):
-            return None
-        return sanitize_media_path(value)
+    def _resolve_profile_image_url(cls, value: Optional[str]) -> Optional[str]:
+        return resolve_storage_url(value)
 
 
 class AboutProfile(AboutProfileBase):

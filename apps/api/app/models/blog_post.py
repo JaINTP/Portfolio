@@ -12,7 +12,13 @@ from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..db import BaseModel as ORMBase
-from ..utils import sanitize_media_path, sanitize_plain_text, sanitize_rich_text, sanitize_url
+from ..utils import (
+    resolve_storage_url,
+    sanitize_media_path,
+    sanitize_plain_text,
+    sanitize_rich_text,
+    sanitize_url,
+)
 
 
 class BlogPostRecord(ORMBase):
@@ -77,12 +83,10 @@ class BlogPostBase(BaseModel):
             return []
         return [sanitize_plain_text(str(tag)) for tag in value]
 
-    @field_validator("image", mode="before")
+    @field_validator("image", mode="after")
     @classmethod
-    def _sanitise_image(cls, value: Optional[str]) -> Optional[str]:
-        if value in (None, ""):
-            return None
-        return sanitize_media_path(value)
+    def _resolve_image_url(cls, value: Optional[str]) -> Optional[str]:
+        return resolve_storage_url(value)
 
     @field_validator("published_at", mode="before")
     @classmethod
