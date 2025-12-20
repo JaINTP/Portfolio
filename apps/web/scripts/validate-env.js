@@ -15,7 +15,9 @@ const fail = (message) => {
   process.exit(1);
 };
 
-const envKeys = Object.keys(process.env).filter((key) => key.startsWith('REACT_APP_'));
+const envKeys = Object.keys(process.env).filter(
+  (key) => key.startsWith('REACT_APP_') && !key.startsWith('REACT_APP_VERCEL_'),
+);
 const unexpected = envKeys.filter((key) => !ALLOWED_ENV_VARS.has(key));
 
 if (unexpected.length > 0) {
