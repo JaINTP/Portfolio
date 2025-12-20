@@ -124,10 +124,21 @@ def resolve_storage_url(url: str | None) -> str | None:
         if len(parts) == 2:
             # strip leading bucket name if present in path
             path_parts = parts[1].split("/", 1)
-            if len(path_parts) == 2 and path_parts[0] == settings.s3_bucket:
-                key = path_parts[1]
-                return f"{settings.s3_custom_domain.rstrip('/')}/{key}"
+            # If the first path segment is the bucket name, the rest is the key.
+            if len(path_parts) == 2 and path_parts[0].lstrip("/") == settings.s3_bucket:
+                return f"{settings.s3_custom_domain.rstrip('/')}/{path_parts[1]}"
+            # Otherwise, use the entire remaining path as the key.
+            return f"{settings.s3_custom_domain.rstrip('/')}/{parts[1].lstrip('/')}"
             
+    # Also handle standard S3 URLs if custom domain is provided
+    # Format: https://<bucket>.s3.<region>.amazonaws.com/<key>
+    if ".s3." in url and ".amazonaws.com/" in url:
+        for suffix in (".s3.amazonaws.com/", ".amazonaws.com/"):
+             if suffix in url:
+                 parts = url.split(suffix, 1)
+                 if len(parts) == 2:
+                     return f"{settings.s3_custom_domain.rstrip('/')}/{parts[1].lstrip('/')}"
+
     return url
 
 def get_storage_provider() -> StorageProvider:

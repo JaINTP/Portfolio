@@ -198,6 +198,19 @@ class Settings(BaseSettings):
             return parsed
         return [item.strip() for item in value if str(item).strip()]
 
+    @field_validator("s3_custom_domain", mode="before")
+    @classmethod
+    def ensure_s3_custom_domain_protocol(cls, value: str | None) -> str | None:
+        """Ensure the custom domain has a protocol prefix to prevent frontend misinterpretation."""
+        if not value:
+            return value
+        stripped = value.strip().rstrip("/")
+        if not stripped:
+            return None
+        if not stripped.startswith(("http://", "https://")):
+            return f"https://{stripped}"
+        return stripped
+
     @field_validator("trusted_hosts", "trusted_proxies")
     @classmethod
     def ensure_non_empty(cls, value: list[str], info: ValidationInfo) -> list[str]:
