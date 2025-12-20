@@ -114,8 +114,13 @@ def resolve_storage_url(url: str | None) -> str | None:
     settings = get_settings()
 
     # Only rewrite if a custom domain or public subdomain is configured
-    if not settings.s3_custom_domain:
+    custom_domain = settings.s3_custom_domain
+    if not custom_domain:
         return url
+    
+    # Ensure protocol
+    if not custom_domain.startswith(("http://", "https://")):
+        custom_domain = f"https://{custom_domain}"
 
     # Check for legacy Cloudflare R2 S3-style URLs
     # Format: https://<account_id>.r2.cloudflarestorage.com/<bucket>/<key>
@@ -126,9 +131,9 @@ def resolve_storage_url(url: str | None) -> str | None:
             path_parts = parts[1].split("/", 1)
             # If the first path segment is the bucket name, the rest is the key.
             if len(path_parts) == 2 and path_parts[0].lstrip("/") == settings.s3_bucket:
-                return f"{settings.s3_custom_domain.rstrip('/')}/{path_parts[1]}"
+                return f"{custom_domain.rstrip('/')}/{path_parts[1]}"
             # Otherwise, use the entire remaining path as the key.
-            return f"{settings.s3_custom_domain.rstrip('/')}/{parts[1].lstrip('/')}"
+            return f"{custom_domain.rstrip('/')}/{parts[1].lstrip('/')}"
             
     # Also handle standard S3 URLs if custom domain is provided
     # Format: https://<bucket>.s3.<region>.amazonaws.com/<key>
@@ -137,7 +142,7 @@ def resolve_storage_url(url: str | None) -> str | None:
              if suffix in url:
                  parts = url.split(suffix, 1)
                  if len(parts) == 2:
-                     return f"{settings.s3_custom_domain.rstrip('/')}/{parts[1].lstrip('/')}"
+                     return f"{custom_domain.rstrip('/')}/{parts[1].lstrip('/')}"
 
     return url
 
@@ -146,14 +151,19 @@ def get_storage_provider() -> StorageProvider:
     from ..config import get_settings
     settings = get_settings()
     
+    # Ensure custom domain has protocol if provided
+    public_url_override = settings.s3_custom_domain
+    if public_url_override and not public_url_override.startswith(("http://", "https://")):
+        public_url_override = f"https://{public_url_override}"
+
     if settings.storage_type == "s3":
         return S3StorageProvider(
             bucket=settings.s3_bucket,
-            region=settings.s3_region,
+            region=settings.s3_region or "auto",
             access_key=settings.s3_access_key_id,
             secret_key=settings.s3_secret_access_key,
             endpoint_url=settings.s3_endpoint_url,
-            public_url_override=settings.s3_custom_domain
+            public_url_override=public_url_override,
         )
     
     return LocalStorageProvider(base_dir=settings.uploads_dir)
