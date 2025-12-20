@@ -12,16 +12,19 @@ if (!configuredBaseUrl && !isDevelopment) {
 const API_BASE_URL = configuredBaseUrl || fallbackDevelopmentBase;
 const API_BASE = API_BASE_URL.replace(/\/$/, '');
 
-const assertAbsoluteUrl = (value) => {
+const validateApiBaseUrl = (value) => {
+  if (value.startsWith('/')) {
+    return;
+  }
   try {
     // eslint-disable-next-line no-new
     new URL(value);
   } catch (error) {
-    throw new Error(`Invalid API base URL: ${value}`);
+    throw new Error(`Invalid API base URL: ${value}. Must be an absolute URL or start with "/".`);
   }
 };
 
-assertAbsoluteUrl(API_BASE_URL);
+validateApiBaseUrl(API_BASE_URL);
 
 const GLOBAL_DATA_KEY = '__PORTFOLIO_DATA__';
 const scriptPromises = new Map();

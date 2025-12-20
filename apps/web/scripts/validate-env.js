@@ -28,7 +28,13 @@ if (unexpected.length > 0) {
   );
 }
 
-const apiBase = (process.env.REACT_APP_API_BASE_URL || '').trim();
+const isVercel = process.env.VERCEL === '1';
+let apiBase = (process.env.REACT_APP_API_BASE_URL || '').trim();
+
+if (!apiBase && isVercel) {
+  console.log('[env] REACT_APP_API_BASE_URL not set, defaulting to "/api" for Vercel build.');
+  apiBase = '/api';
+}
 
 if (!apiBase) {
   fail(
@@ -36,20 +42,24 @@ if (!apiBase) {
   );
 }
 
-let parsed;
-try {
-  parsed = new URL(apiBase);
-} catch (error) {
-  fail(`REACT_APP_API_BASE_URL must be a valid absolute URL. Received: ${apiBase}`);
-}
+if (apiBase.startsWith('/')) {
+  console.log(`[env] Validating relative API base: ${apiBase}`);
+} else {
+  let parsed;
+  try {
+    parsed = new URL(apiBase);
+  } catch (error) {
+    fail(`REACT_APP_API_BASE_URL must be a valid absolute URL or start with "/". Received: ${apiBase}`);
+  }
 
-const isLocalHost =
-  parsed.hostname === 'localhost' ||
-  parsed.hostname === '127.0.0.1' ||
-  parsed.hostname.endsWith('.local');
+  const isLocalHost =
+    parsed.hostname === 'localhost' ||
+    parsed.hostname === '127.0.0.1' ||
+    parsed.hostname.endsWith('.local');
 
-if (!isLocalHost && parsed.protocol !== 'https:') {
-  fail('REACT_APP_API_BASE_URL must use HTTPS for non-local origins.');
+  if (!isLocalHost && parsed.protocol !== 'https:') {
+    fail('REACT_APP_API_BASE_URL must use HTTPS for non-local origins.');
+  }
 }
 
 console.log('[env] Environment variables validated successfully.');
