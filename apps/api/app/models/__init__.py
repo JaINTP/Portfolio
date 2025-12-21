@@ -12,7 +12,6 @@ from .status_check import (
     StatusCheck,
     StatusCheckCreate,
     StatusCheckRecord,
-    StatusCheckUpdate,
 )
 from .user import UserProfile, UserProfileRecord
 from .comment import Comment, CommentCreate, CommentRecord
@@ -32,7 +31,6 @@ __all__ = [
     "StatusCheck",
     "StatusCheckCreate",
     "StatusCheckRecord",
-    "StatusCheckUpdate",
     "UserProfile",
     "UserProfileRecord",
     "Comment",

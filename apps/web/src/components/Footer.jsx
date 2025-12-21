@@ -115,6 +115,14 @@ const Footer = () => {
           <p className="text-center text-gray-500 text-sm">
             © {currentYear} Portfolio. Built with React & FastAPI.
           </p>
+          <div className="mt-4 flex justify-center gap-6">
+            <a href="/terms" className="text-gray-500 hover:text-cyan-400 text-xs transition-colors">
+              Terms of Service
+            </a>
+            <a href="/privacy" className="text-gray-500 hover:text-cyan-400 text-xs transition-colors">
+              Privacy Policy
+            </a>
+          </div>
         </div>
       </div>
     </footer>
