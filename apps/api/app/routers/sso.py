@@ -142,8 +142,12 @@ async def auth_callback(
 
     try:
         redirect_uri = get_redirect_uri(request, provider)
-        logger.info(f"SSO Callback for {provider} using redirect_uri: {redirect_uri}")
-        logger.info(f"Session keys at callback: {list(request.session.keys())}")
+        logger.info(f"SSO Callback for {provider}")
+        logger.info(f"Redirect URI: {redirect_uri}")
+        logger.info(f"Cookies received: {list(request.cookies.keys())}")
+        logger.info(f"Session keys: {list(request.session.keys())}")
+        logger.info(f"State in session: {request.session.get(f'_state_{provider}')}")
+        logger.info(f"State in URL: {request.query_params.get('state')}")
         
         token = await client.authorize_access_token(request, redirect_uri=redirect_uri)
         user_info = token.get("userinfo")

@@ -100,6 +100,9 @@ def create_app() -> FastAPI:
     """Instantiate and configure the FastAPI application."""
 
     settings = get_settings()
+    logger.info("Starting Portfolio API in %s mode", settings.environment)
+    logger.info("Session Config - Name: %s, SameSite: %s, Secure: %s", 
+                settings.session_cookie_name, settings.session_cookie_samesite, settings.session_cookie_secure)
 
     docs_url = "/docs" if settings.environment == "development" else None
     redoc_url = "/redoc" if settings.environment == "development" else None
@@ -122,11 +125,8 @@ def create_app() -> FastAPI:
     app.add_middleware(SlowAPIMiddleware)
     app.add_middleware(GZipMiddleware, minimum_size=512)
 
-    if settings.trusted_proxies:
-        app.add_middleware(
-            ProxyHeadersMiddleware,
-            trusted_hosts=list(settings.trusted_proxies),
-        )
+    # Trust all proxies when running on Vercel to ensure https is detected
+    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
     if settings.trusted_hosts:
         app.add_middleware(
@@ -140,7 +140,7 @@ def create_app() -> FastAPI:
         session_cookie=settings.session_cookie_name,
         max_age=settings.session_cookie_max_age_seconds,
         same_site=settings.session_cookie_samesite,
-        https_only=settings.session_cookie_secure,
+        https_only=True,  # Force secure for SameSite=None
     )
 
     app.add_middleware(
