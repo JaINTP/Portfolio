@@ -97,6 +97,17 @@ async def get_enabled_providers():
         providers.append("meta")
     return providers
 
+@router.get("/config/debug", include_in_schema=False)
+async def debug_sso_config():
+    """Diagnostic endpoint to verify active SSO settings (masked)."""
+    return {
+        "google": {
+            "client_id": f"{settings.google_client_id[:10]}..." if settings.google_client_id else None,
+            "has_secret": bool(settings.google_client_secret),
+        } if settings.google_client_id else "Not Configured",
+        "frontend_origin": str(settings.frontend_origin)
+    }
+
 @router.get("/{provider}/login")
 async def login(provider: str, request: Request):
     """Initiate SSO login flow."""
