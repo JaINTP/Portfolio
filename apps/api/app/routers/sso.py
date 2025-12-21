@@ -108,6 +108,16 @@ async def debug_sso_config():
         "frontend_origin": str(settings.frontend_origin)
     }
 
+@router.get("/session/debug", include_in_schema=False)
+async def debug_session(request: Request):
+    """Diagnostic endpoint to verify session and cookies."""
+    return {
+        "session_keys": list(request.session.keys()),
+        "has_user_id": "user_id" in request.session,
+        "cookies": list(request.cookies.keys()),
+        "headers": {k: v for k, v in request.headers.items() if k.lower() in ["cookie", "x-forwarded-host", "host"]}
+    }
+
 @router.get("/{provider}/login")
 async def login(provider: str, request: Request):
     """Initiate SSO login flow."""
@@ -130,65 +140,76 @@ async def auth_callback(
     if not client:
         raise HTTPException(status_code=404, detail=f"Provider {provider} not configured")
 
-    redirect_uri = get_redirect_uri(request, provider)
-    token = await client.authorize_access_token(request, redirect_uri=redirect_uri)
-    user_info = token.get("userinfo")
-    
-    if not user_info:
-        if provider == "github":
-            resp = await client.get("user", token=token)
-            user_info = resp.json()
-            # GitHub might not return email in /user if it's private
-            if not user_info.get("email"):
-                emails_resp = await client.get("user/emails", token=token)
-                emails = emails_resp.json()
-                for email in emails:
-                    if email.get("primary") and email.get("verified"):
-                        user_info["email"] = email["email"]
-                        break
-        elif provider == "meta":
-            resp = await client.get("me?fields=id,name,email,picture", token=token)
-            user_info = resp.json()
-        elif provider == "twitter":
-            resp = await client.get("account/verify_credentials.json?include_email=true", token=token)
-            user_info = resp.json()
+    try:
+        redirect_uri = get_redirect_uri(request, provider)
+        logger.info(f"SSO Callback for {provider} using redirect_uri: {redirect_uri}")
+        
+        token = await client.authorize_access_token(request, redirect_uri=redirect_uri)
+        user_info = token.get("userinfo")
+        
+        if not user_info:
+            if provider == "github":
+                resp = await client.get("user", token=token)
+                user_info = resp.json()
+                if not user_info.get("email"):
+                    emails_resp = await client.get("user/emails", token=token)
+                    emails = emails_resp.json()
+                    for email_data in emails:
+                        if email_data.get("primary") and email_data.get("verified"):
+                            user_info["email"] = email_data["email"]
+                            break
+            elif provider == "meta":
+                resp = await client.get("me?fields=id,name,email,picture", token=token)
+                user_info = resp.json()
+            elif provider == "twitter":
+                resp = await client.get("account/verify_credentials.json?include_email=true", token=token)
+                user_info = resp.json()
 
-    if not user_info or not user_info.get("email"):
-        raise HTTPException(status_code=400, detail="Could not retrieve user info from provider")
+        if not user_info or not user_info.get("email"):
+            logger.error(f"Failed to retrieve user info for {provider}: {user_info}")
+            raise HTTPException(status_code=400, detail="Could not retrieve user info (email) from provider")
 
-    email = user_info["email"].lower()
-    name = user_info.get("name") or user_info.get("login") or email.split("@")[0]
-    avatar_url = user_info.get("picture") or user_info.get("avatar_url")
-    provider_id = str(user_info.get("sub") or user_info.get("id"))
+        email = user_info["email"].lower()
+        name = user_info.get("name") or user_info.get("login") or email.split("@")[0]
+        avatar_url = user_info.get("picture") or user_info.get("avatar_url")
+        provider_id = str(user_info.get("sub") or user_info.get("id"))
 
-    # Check if user exists
-    stmt = select(UserProfileRecord).where(UserProfileRecord.email == email)
-    result = await session.execute(stmt)
-    user_record = result.scalar_one_or_none()
+        # Check if user exists
+        stmt = select(UserProfileRecord).where(UserProfileRecord.email == email)
+        result = await session.execute(stmt)
+        user_record = result.scalar_one_or_none()
 
-    if not user_record:
-        # Create new user
-        user_record = UserProfileRecord(
-            email=email,
-            name=name,
-            avatar_url=avatar_url,
-            provider=provider,
-            provider_id=provider_id
+        if not user_record:
+            user_record = UserProfileRecord(
+                email=email,
+                name=name,
+                avatar_url=avatar_url,
+                provider=provider,
+                provider_id=provider_id
+            )
+            session.add(user_record)
+            await session.commit()
+            await session.refresh(user_record)
+        else:
+            user_record.name = name
+            user_record.avatar_url = avatar_url
+            await session.commit()
+
+        # Store user in session
+        request.session["user_id"] = str(user_record.id)
+        request.session["user_email"] = user_record.email
+        request.session["user_name"] = user_record.name
+
+        logger.info(f"Successfully logged in user {email} via {provider}")
+
+        # Redirect back to frontend
+        frontend_url = str(settings.frontend_origin).rstrip("/")
+        return RedirectResponse(url=f"{frontend_url}/blog")
+
+    except Exception as e:
+        logger.exception(f"Error in SSO callback for {provider}: {str(e)}")
+        # In production, you might want to return 400 with a generic message
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Authentication failed: {type(e).__name__}. Check server logs for details."
         )
-        session.add(user_record)
-        await session.commit()
-        await session.refresh(user_record)
-    else:
-        # Update existing user info
-        user_record.name = name
-        user_record.avatar_url = avatar_url
-        await session.commit()
-
-    # Store user in session
-    request.session["user_id"] = str(user_record.id)
-    request.session["user_email"] = user_record.email
-    request.session["user_name"] = user_record.name
-
-    # Redirect back to frontend
-    frontend_url = str(settings.frontend_origin).rstrip("/")
-    return RedirectResponse(url=f"{frontend_url}/blog")
