@@ -143,6 +143,7 @@ async def auth_callback(
     try:
         redirect_uri = get_redirect_uri(request, provider)
         logger.info(f"SSO Callback for {provider} using redirect_uri: {redirect_uri}")
+        logger.info(f"Session keys at callback: {list(request.session.keys())}")
         
         token = await client.authorize_access_token(request, redirect_uri=redirect_uri)
         user_info = token.get("userinfo")
