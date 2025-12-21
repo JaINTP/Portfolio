@@ -1,6 +1,11 @@
 """Centralised access to ORM models and Pydantic schemas."""
 
-from .about_profile import AboutProfile, AboutProfileCreate, AboutProfileUpdate
+from .about_profile import (
+    AboutProfile,
+    AboutProfileCreate,
+    AboutProfileRecord,
+    AboutProfileUpdate,
+)
 from .blog_post import (
     BlogPost,
     BlogPostCreate,
@@ -19,6 +24,7 @@ from .comment import Comment, CommentCreate, CommentRecord
 __all__ = [
     "AboutProfile",
     "AboutProfileCreate",
+    "AboutProfileRecord",
     "AboutProfileUpdate",
     "BlogPost",
     "BlogPostCreate",
