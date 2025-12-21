@@ -101,7 +101,7 @@ class Settings(BaseSettings):
     )
     session_cookie_name: str = Field(default="portfolio_session")
     session_cookie_secure: bool = Field(default=True)
-    session_cookie_samesite: str = Field(default="strict")
+    session_cookie_samesite: str = Field(default="lax")
     session_cookie_domain: str | None = Field(default=None)
     session_cookie_max_age_seconds: int = Field(default=3600, ge=300)
     forwarded_allow_ips: str = Field(default="127.0.0.1")

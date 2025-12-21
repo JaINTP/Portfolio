@@ -70,6 +70,19 @@ if settings.meta_client_id and settings.meta_client_secret:
         client_kwargs={"scope": "email,public_profile"},
     )
 
+def get_redirect_uri(request: Request, provider: str) -> str:
+    """Generate the correctly-routed redirect URI for SSO callbacks."""
+    # Respect X-Forwarded-Host if present (common in Vercel/proxy setups)
+    forwarded_host = request.headers.get("x-forwarded-host")
+    forwarded_proto = request.headers.get("x-forwarded-proto", "https")
+    
+    if forwarded_host:
+        # Construct URI using the forwarded host to stay on the frontend domain
+        return f"{forwarded_proto}://{forwarded_host}/api/auth/sso/{provider}/callback"
+    
+    # Fallback to standard url_for for local development
+    return str(request.url_for("auth_callback", provider=provider))
+
 @router.get("/providers")
 async def get_enabled_providers():
     """Return a list of configured SSO providers."""
@@ -91,8 +104,8 @@ async def login(provider: str, request: Request):
     if not client:
         raise HTTPException(status_code=404, detail=f"Provider {provider} not configured")
     
-    redirect_uri = request.url_for("auth_callback", provider=provider)
-    return await client.authorize_redirect(request, str(redirect_uri))
+    redirect_uri = get_redirect_uri(request, provider)
+    return await client.authorize_redirect(request, redirect_uri)
 
 
 @router.get("/{provider}/callback", name="auth_callback")
@@ -106,7 +119,8 @@ async def auth_callback(
     if not client:
         raise HTTPException(status_code=404, detail=f"Provider {provider} not configured")
 
-    token = await client.authorize_access_token(request)
+    redirect_uri = get_redirect_uri(request, provider)
+    token = await client.authorize_access_token(request, redirect_uri=redirect_uri)
     user_info = token.get("userinfo")
     
     if not user_info:
