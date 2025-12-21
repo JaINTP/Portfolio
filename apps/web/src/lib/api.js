@@ -151,6 +151,9 @@ export const api = {
   login: (credentials) => request('/auth/login', { method: 'POST', body: credentials }),
   logout: () => request('/auth/logout', { method: 'POST' }),
   session: () => request('/auth/session'),
+  ssoLogin: (provider) => {
+    window.location.href = `${API_BASE}/auth/sso/${provider}/login`;
+  },
 
   // Blogs
   listBlogs: () => requestWithFallback('/blogs', '/blogs/data.js', 'blogs'),
@@ -172,6 +175,8 @@ export const api = {
   createBlog: (data) => request('/blogs', { method: 'POST', body: data }),
   updateBlog: (id, data) => request(`/blogs/${id}`, { method: 'PUT', body: data }),
   deleteBlog: (id) => request(`/blogs/${id}`, { method: 'DELETE' }),
+  listComments: (blogId) => request(`/blogs/${blogId}/comments`),
+  postComment: (blogId, data) => request(`/blogs/${blogId}/comments`, { method: 'POST', body: data }),
 
   // Projects
   listProjects: () => requestWithFallback('/projects', '/projects/data.js', 'projects'),

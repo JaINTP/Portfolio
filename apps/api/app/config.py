@@ -106,6 +106,16 @@ class Settings(BaseSettings):
     session_cookie_max_age_seconds: int = Field(default=3600, ge=300)
     forwarded_allow_ips: str = Field(default="127.0.0.1")
     
+    # SSO Configuration
+    google_client_id: str = Field(default="")
+    google_client_secret: str = Field(default="")
+    github_client_id: str = Field(default="")
+    github_client_secret: str = Field(default="")
+    twitter_client_id: str = Field(default="")
+    twitter_client_secret: str = Field(default="")
+    meta_client_id: str = Field(default="")
+    meta_client_secret: str = Field(default="")
+    
     # Storage Configuration
     storage_type: Literal["local", "s3"] = Field(
         default="local",

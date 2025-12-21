@@ -7,6 +7,7 @@ import ResponsiveSection from '../components/layout/ResponsiveSection';
 import { resolveMediaUrl } from '../lib/utils';
 import hljs from 'highlight.js/lib/common';
 import 'highlight.js/styles/github-dark.css';
+import CommentSection from '../components/blog/CommentSection';
 
 const BlogDetail = () => {
   const { id } = useParams();
@@ -179,6 +180,8 @@ const BlogDetail = () => {
               ref={contentRef}
               dangerouslySetInnerHTML={{ __html: safeContent }}
             />
+
+            <CommentSection blogId={blog.id} />
           </div>
         </article>
       </ResponsiveSection>

@@ -9,7 +9,7 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import ARRAY, Date, DateTime, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..db import BaseModel as ORMBase
 from ..utils import (
@@ -51,6 +51,14 @@ class BlogPostRecord(ORMBase):
         onupdate=func.now(),
         default=lambda: datetime.now(timezone.utc),
         nullable=False,
+    )
+
+    comments: Mapped[List["CommentRecord"]] = relationship(
+        "CommentRecord",
+        backref="blog_post",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="CommentRecord.created_at.desc()",
     )
 
 

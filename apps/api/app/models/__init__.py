@@ -1,51 +1,41 @@
-"""Models used by the API."""
+"""Centralised access to ORM models and Pydantic schemas."""
 
-from ..db import BaseModel
-from .about_profile import (
-    AboutProfile,
-    AboutProfileCreate,
-    AboutProfileRecord,
-    AboutProfileUpdate,
-    DogProfile,
-    SocialLinks,
-)
+from .about_profile import AboutProfile, AboutProfileCreate, AboutProfileUpdate
 from .blog_post import (
     BlogPost,
     BlogPostCreate,
     BlogPostRecord,
     BlogPostUpdate,
 )
-from .project import (
-    Project,
-    ProjectCreate,
-    ProjectRecord,
-    ProjectUpdate,
+from .project import Project, ProjectCreate, ProjectRecord, ProjectUpdate
+from .status_check import (
+    StatusCheck,
+    StatusCheckCreate,
+    StatusCheckRecord,
+    StatusCheckUpdate,
 )
-from .status_check import StatusCheck, StatusCheckCreate, StatusCheckRecord
-
-metadata = BaseModel.metadata
+from .user import UserProfile, UserProfileRecord
+from .comment import Comment, CommentCreate, CommentRecord
 
 __all__ = [
-    "metadata",
-    # Blog posts
-    "BlogPost",
-    "BlogPostCreate",
-    "BlogPostUpdate",
-    "BlogPostRecord",
-    # Projects
-    "Project",
-    "ProjectCreate",
-    "ProjectUpdate",
-    "ProjectRecord",
-    # About profile
     "AboutProfile",
     "AboutProfileCreate",
     "AboutProfileUpdate",
-    "AboutProfileRecord",
-    "DogProfile",
-    "SocialLinks",
-    # Status checks
+    "BlogPost",
+    "BlogPostCreate",
+    "BlogPostRecord",
+    "BlogPostUpdate",
+    "Project",
+    "ProjectCreate",
+    "ProjectRecord",
+    "ProjectUpdate",
     "StatusCheck",
     "StatusCheckCreate",
     "StatusCheckRecord",
+    "StatusCheckUpdate",
+    "UserProfile",
+    "UserProfileRecord",
+    "Comment",
+    "CommentCreate",
+    "CommentRecord",
 ]
