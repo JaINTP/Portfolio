@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import { Button } from '../ui/button';
 import { Github, Globe, Twitter, Facebook } from 'lucide-react';
@@ -7,6 +7,22 @@ const CommentForm = ({ blogId, onCommentAdded, user }) => {
     const [content, setContent] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
+    const [enabledProviders, setEnabledProviders] = useState([]);
+
+    useEffect(() => {
+        const fetchProviders = async () => {
+            try {
+                const providers = await api.listSsoProviders();
+                setEnabledProviders(providers || []);
+            } catch (err) {
+                console.error('Failed to fetch SSO providers:', err);
+            }
+        };
+
+        if (!user) {
+            fetchProviders();
+        }
+    }, [user]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -26,42 +42,30 @@ const CommentForm = ({ blogId, onCommentAdded, user }) => {
     };
 
     if (!user) {
+        if (enabledProviders.length === 0) return null;
+
+        const providerButtons = [
+            { id: 'github', name: 'GitHub', icon: Github, className: "bg-[#24292F] hover:bg-[#24292F]/90" },
+            { id: 'google', name: 'Google', icon: Globe, className: "bg-[#4285F4] hover:bg-[#4285F4]/90" },
+            { id: 'twitter', name: 'Twitter', icon: Twitter, className: "bg-[#1DA1F2] hover:bg-[#1DA1F2]/90" },
+            { id: 'meta', name: 'Meta', icon: Facebook, className: "bg-[#1877F2] hover:bg-[#1877F2]/90" },
+        ];
+
         return (
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center">
                 <p className="text-gray-300 mb-6">Sign in to join the conversation</p>
                 <div className="flex flex-wrap justify-center gap-4">
-                    <Button
-                        variant="outline"
-                        className="flex items-center gap-2 bg-[#24292F] hover:bg-[#24292F]/90 text-white border-none"
-                        onClick={() => api.ssoLogin('github')}
-                    >
-                        <Github className="w-4 h-4" />
-                        GitHub
-                    </Button>
-                    <Button
-                        variant="outline"
-                        className="flex items-center gap-2 bg-[#4285F4] hover:bg-[#4285F4]/90 text-white border-none"
-                        onClick={() => api.ssoLogin('google')}
-                    >
-                        <Globe className="w-4 h-4" />
-                        Google
-                    </Button>
-                    <Button
-                        variant="outline"
-                        className="flex items-center gap-2 bg-[#1DA1F2] hover:bg-[#1DA1F2]/90 text-white border-none"
-                        onClick={() => api.ssoLogin('twitter')}
-                    >
-                        <Twitter className="w-4 h-4" />
-                        Twitter
-                    </Button>
-                    <Button
-                        variant="outline"
-                        className="flex items-center gap-2 bg-[#1877F2] hover:bg-[#1877F2]/90 text-white border-none"
-                        onClick={() => api.ssoLogin('meta')}
-                    >
-                        <Facebook className="w-4 h-4" />
-                        Meta
-                    </Button>
+                    {providerButtons.filter(p => enabledProviders.includes(p.id)).map(p => (
+                        <Button
+                            key={p.id}
+                            variant="outline"
+                            className={`flex items-center gap-2 text-white border-none ${p.className}`}
+                            onClick={() => api.ssoLogin(p.id)}
+                        >
+                            <p.icon className="w-4 h-4" />
+                            {p.name}
+                        </Button>
+                    ))}
                 </div>
             </div>
         );

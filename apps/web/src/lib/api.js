@@ -151,6 +151,7 @@ export const api = {
   login: (credentials) => request('/auth/login', { method: 'POST', body: credentials }),
   logout: () => request('/auth/logout', { method: 'POST' }),
   session: () => request('/auth/session'),
+  listSsoProviders: () => request('/auth/sso/providers'),
   ssoLogin: (provider) => {
     window.location.href = `${API_BASE}/auth/sso/${provider}/login`;
   },

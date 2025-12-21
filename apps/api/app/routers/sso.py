@@ -70,6 +70,20 @@ if settings.meta_client_id and settings.meta_client_secret:
         client_kwargs={"scope": "email,public_profile"},
     )
 
+@router.get("/providers")
+async def get_enabled_providers():
+    """Return a list of configured SSO providers."""
+    providers = []
+    if settings.google_client_id and settings.google_client_secret:
+        providers.append("google")
+    if settings.github_client_id and settings.github_client_secret:
+        providers.append("github")
+    if settings.twitter_client_id and settings.twitter_client_secret:
+        providers.append("twitter")
+    if settings.meta_client_id and settings.meta_client_secret:
+        providers.append("meta")
+    return providers
+
 @router.get("/{provider}/login")
 async def login(provider: str, request: Request):
     """Initiate SSO login flow."""
