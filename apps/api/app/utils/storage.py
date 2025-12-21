@@ -14,7 +14,7 @@ class StorageProvider(ABC):
     """Abstract base class for storage providers."""
 
     @abstractmethod
-    async def upload(self, file: BinaryIO, filename: str, subdir: str | None = None) -> str:
+    async def upload(self, file: BinaryIO, filename: str, subdir: str | None = None, content_type: str | None = None) -> str:
         """Upload a file and return its public URL or relative path."""
         pass
 
@@ -25,7 +25,7 @@ class LocalStorageProvider(StorageProvider):
         self.base_dir = base_dir
         self.public_url_prefix = public_url_prefix
 
-    async def upload(self, file: BinaryIO, filename: str, subdir: str | None = None) -> str:
+    async def upload(self, file: BinaryIO, filename: str, subdir: str | None = None, content_type: str | None = None) -> str:
         target_dir = self.base_dir
         relative_path = f"{self.public_url_prefix}/{filename}"
         
@@ -64,7 +64,7 @@ class S3StorageProvider(StorageProvider):
         
         self.session = aioboto3.Session()
 
-    async def upload(self, file: BinaryIO, filename: str, subdir: str | None = None) -> str:
+    async def upload(self, file: BinaryIO, filename: str, subdir: str | None = None, content_type: str | None = None) -> str:
         key = filename
         if subdir:
             key = f"{subdir}/{filename}"
@@ -82,7 +82,8 @@ class S3StorageProvider(StorageProvider):
                 await s3.put_object(
                     Bucket=self.bucket,
                     Key=key,
-                    Body=file.read()
+                    Body=file.read(),
+                    ContentType=content_type or "application/octet-stream"
                 )
             except Exception as e:
                 raise HTTPException(

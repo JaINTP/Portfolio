@@ -16,12 +16,13 @@ from ..utils.storage import get_storage_provider
 
 ALLOWED_CONTENT_TYPES: dict[str, str] = {
     "image/jpeg": ".jpg",
+    "image/jpg": ".jpg",
     "image/png": ".png",
     "image/webp": ".webp",
     "image/gif": ".gif",
 }
 
-MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5 MB
+MAX_UPLOAD_SIZE = 4 * 1024 * 1024  # 4 MB (Vercel has 4.5MB limit)
 
 
 class UploadResponse(BaseModel):
@@ -60,7 +61,7 @@ async def _store_image(file: UploadFile, *, subdir: str | None, prefix: str) -> 
     filename = f"{prefix}_{uuid4().hex}{extension}"
 
     storage = get_storage_provider()
-    url = await storage.upload(file_obj, filename, subdir=subdir)
+    url = await storage.upload(file_obj, filename, subdir=subdir, content_type=content_type)
 
     return url
 

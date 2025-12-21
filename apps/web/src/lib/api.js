@@ -210,6 +210,15 @@ export const api = {
       headers: { Accept: '*/*' },
     });
   },
+  uploadAboutImage: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return request('/uploads/about/image', {
+      method: 'POST',
+      body: formData,
+      headers: { Accept: '*/*' },
+    });
+  },
   uploadBlogImage: (file) => {
     const formData = new FormData();
     formData.append('file', file);

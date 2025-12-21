@@ -269,7 +269,7 @@ const Admin = () => {
     setError(null);
 
     try {
-      const response = await api.uploadProfileImage(file);
+      const response = await api.uploadAboutImage(file);
       setAboutForm((prev) => ({
         ...prev,
         dogImage: response.url,
