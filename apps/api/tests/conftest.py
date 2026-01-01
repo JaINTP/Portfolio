@@ -31,7 +31,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 test_password_hash = pwd_context.hash("password")
 
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
-os.environ["ENVIRONMENT"] = "testing"
+os.environ["ENVIRONMENT"] = "development"
 os.environ["UPLOADS_DIR"] = os.path.join(os.getcwd(), "tests", "uploads")
 os.environ["FRONTEND_ORIGIN"] = "https://test.example.com"
 os.environ["JWT_SECRET_KEY"] = "test-secret-key-00000000000000000000000000000000"
@@ -41,6 +41,7 @@ os.environ["ADMIN_USERNAME"] = "admin@example.com"
 os.environ["TRUSTED_HOSTS"] = "*"
 os.environ["SESSION_COOKIE_SECURE"] = "false"
 os.environ["SESSION_COOKIE_SAMESITE"] = "lax"
+os.environ["DEVELOPMENT_ORIGINS"] = ""
 
 # 1b. Monkey-patch create_async_engine to ignore pool args for SQLite
 _original_create_async_engine = sqlalchemy.ext.asyncio.create_async_engine
@@ -115,6 +116,44 @@ async def client(db_session):
     
     async with AsyncClient(
         transport=ASGITransport(app=app), 
-        base_url="http://test"
+        base_url="https://test"
     ) as ac:
         yield ac
+
+@pytest.fixture(autouse=True)
+async def reset_cache():
+    """Reset the cache service before each test."""
+    from app.services.cache import CacheService
+    # Reset singleton instance
+    CacheService._instance = None
+    # If the app startup initialized it, we might want to ensure a fresh start
+    # But since client fixture calls create_app(), which calls lifespan...
+    # The lifespan logic runs for that app instance.
+    # However, create_app() itself doesn't run lifespan. TestClient/AsyncClient used as context manager triggers lifespan.
+    # So each test using 'client' will trigger lifespan startup -> cache refresh.
+    # Resetting _instance here ensures we don't reuse state from previous tests.
+    yield
+    CacheService._instance = None
+
+@pytest.fixture(autouse=True)
+async def patch_session_factory(db_session):
+    """Patch the SessionFactory in cache service to use the test db session."""
+    from app.services import cache
+    
+    # Create a mock factory that acts as an async context manager yielding the db_session
+    class MockSessionFactory:
+        def __call__(self):
+            return self
+            
+        async def __aenter__(self):
+            return db_session
+            
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            pass
+            
+    original_factory = cache.SessionFactory
+    cache.SessionFactory = MockSessionFactory()
+    
+    yield
+    
+    cache.SessionFactory = original_factory

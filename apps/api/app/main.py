@@ -87,10 +87,39 @@ async def lifespan(app: FastAPI):
     logger.info(
         "Portfolio API ready - connected to %s", _redact_dsn(settings.database_url)
     )
+
+    # Initialize Cache
+    from .services.cache import CacheService
+    import asyncio
+
+    cache = CacheService.get_instance()
+    try:
+        await cache.refresh()
+        logger.info("Initial cache refresh complete")
+    except Exception:
+        logger.warning("Initial cache refresh failed - will retry in background loop")
+
+    async def _cache_refresher():
+        while True:
+            await asyncio.sleep(600)  # 10 minutes
+            try:
+                await cache.refresh()
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logger.exception("Background cache refresh failed")
+
+    refresh_task = asyncio.create_task(_cache_refresher())
     
     yield
     
     # Shutdown
+    refresh_task.cancel()
+    try:
+        await refresh_task
+    except asyncio.CancelledError:
+        pass
+        
     await close_database()
     logger.info("Portfolio API shutdown complete")
 

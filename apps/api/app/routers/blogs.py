@@ -18,6 +18,7 @@ from ..config import get_settings
 from ..db import get_session
 from ..models import BlogPost, BlogPostCreate, BlogPostRecord, BlogPostUpdate
 from ..security import require_admin
+from ..services.cache import CacheService
 
 
 def _normalise_datetime(value: datetime | None) -> datetime:
@@ -42,14 +43,11 @@ router = APIRouter(prefix="/blogs", tags=["blogs"])
 
 
 @router.get("", response_model=list[BlogPost], summary="List all blog posts.")
-async def list_blogs(session: AsyncSession = Depends(get_session)) -> list[BlogPost]:
-    """Return all stored blog posts ordered by publish date."""
+@router.get("", response_model=list[BlogPost], summary="List all blog posts.")
+async def list_blogs() -> list[BlogPost]:
+    """Return all cached blog posts ordered by publish date."""
 
-    result = await session.execute(
-        select(BlogPostRecord).order_by(BlogPostRecord.published_at.desc())
-    )
-    records = result.scalars().all()
-    return [BlogPost.from_record(record) for record in records]
+    return CacheService.get_instance().blogs
 
 
 
@@ -63,7 +61,7 @@ async def blogs_script(
 ) -> PlainTextResponse:
     """Return all blog posts embedded in a script snippet."""
 
-    posts = await list_blogs(session=session)
+    posts = await list_blogs()
     payload = json.dumps(
         [post.model_dump(mode="json") for post in posts],
         separators=(",", ":"),
@@ -86,7 +84,7 @@ async def blogs_rss(
     """Return the blog feed as RSS 2.0 XML."""
 
     settings = get_settings()
-    posts = await list_blogs(session=session)
+    posts = await list_blogs()
     site_url = str(settings.frontend_origin).rstrip("/")
     parsed = urlparse(site_url)
     hostname = (parsed.hostname or "portfolio").removeprefix("www.")
@@ -174,6 +172,7 @@ async def create_blog(
     session.add(record)
     await session.commit()
     await session.refresh(record)
+    await CacheService.get_instance().refresh()
     return BlogPost.from_record(record)
 
 
@@ -200,6 +199,7 @@ async def update_blog(
 
     await session.commit()
     await session.refresh(record)
+    await CacheService.get_instance().refresh()
     return BlogPost.from_record(record)
 
 
@@ -221,6 +221,7 @@ async def delete_blog(
 
     await session.delete(record)
     await session.commit()
+    await CacheService.get_instance().refresh()
 
 
 

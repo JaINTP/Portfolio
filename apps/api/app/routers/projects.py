@@ -13,21 +13,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db import get_session
 from ..models import Project, ProjectCreate, ProjectRecord, ProjectUpdate
 from ..security import require_admin
+from ..services.cache import CacheService
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
 
 @router.get("", response_model=list[Project], summary="List all projects.")
-async def list_projects(
-    session: AsyncSession = Depends(get_session),
-) -> list[Project]:
+async def list_projects() -> list[Project]:
     """Return all stored projects."""
 
-    result = await session.execute(
-        select(ProjectRecord).order_by(ProjectRecord.created_at.desc())
-    )
-    records = result.scalars().all()
-    return [Project.from_record(record) for record in records]
+    return CacheService.get_instance().projects
 
 
 
@@ -41,7 +36,7 @@ async def projects_script(
 ) -> PlainTextResponse:
     """Return all stored projects embedded in a script snippet."""
 
-    projects = await list_projects(session=session)
+    projects = await list_projects()
     payload = json.dumps(
         [project.model_dump(mode="json") for project in projects],
         separators=(",", ":"),
@@ -98,6 +93,7 @@ async def create_project(
     session.add(record)
     await session.commit()
     await session.refresh(record)
+    await CacheService.get_instance().refresh()
     return Project.from_record(record)
 
 
@@ -125,6 +121,7 @@ async def update_project(
 
     await session.commit()
     await session.refresh(record)
+    await CacheService.get_instance().refresh()
     return Project.from_record(record)
 
 
@@ -148,6 +145,7 @@ async def delete_project(
 
     await session.delete(record)
     await session.commit()
+    await CacheService.get_instance().refresh()
 
 
 
