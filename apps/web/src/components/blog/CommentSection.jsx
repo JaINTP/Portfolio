@@ -21,6 +21,12 @@ const CommentSection = ({ blogId }) => {
     };
 
     const checkSession = async () => {
+        // Optimization: Don't hit API if we know we're not logged in
+        if (!document.cookie.includes('auth_state=true')) {
+            setUser(null);
+            return;
+        }
+
         try {
             const session = await api.session();
             if (session.authenticated) {

@@ -49,6 +49,7 @@ async function request(path, { method = 'GET', body, headers = {} } = {}) {
       ...headers,
     },
     credentials: 'include',
+    cache: 'no-store', // Prevent browser/CDN caching of API responses
   };
 
   const isFormData =

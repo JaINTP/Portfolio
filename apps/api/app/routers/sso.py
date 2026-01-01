@@ -208,8 +208,21 @@ async def auth_callback(
         logger.info(f"Successfully logged in user {email} via {provider}")
 
         # Redirect back to frontend
+        # Redirect back to frontend
         frontend_url = str(settings.frontend_origin).rstrip("/")
-        return RedirectResponse(url=f"{frontend_url}/blog")
+        response = RedirectResponse(url=f"{frontend_url}/blog")
+        
+        # Set visible cookie for frontend state detection
+        response.set_cookie(
+            key="auth_state",
+            value="true",
+            max_age=settings.session_cookie_max_age_seconds,
+            path="/",
+            secure=settings.session_cookie_secure,
+            httponly=False,  # Explicitly accessible to JS
+            samesite="lax",
+        )
+        return response
 
     except Exception as e:
         logger.exception(f"Error in SSO callback for {provider}: {str(e)}")

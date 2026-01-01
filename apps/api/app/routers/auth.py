@@ -116,37 +116,82 @@ async def login(
     request.session["admin_email"] = settings.admin_email
     request.session["jwt"] = token
     response.status_code = status.HTTP_204_NO_CONTENT
+    
+    # Set visible cookie for frontend state detection
+    response.set_cookie(
+        key="auth_state",
+        value="true",
+        max_age=settings.session_cookie_max_age_seconds,
+        path="/",
+        secure=settings.session_cookie_secure,
+        httponly=False,  # Explicitly accessible to JS
+        samesite="lax",
+    )
     return response
 
+
+    username = payload.get("sub")
+    is_admin = payload.get("is_admin")
+    
+    response = Response()
+    # Explicitly disable caching for this sensitive endpoint
+    response.headers["Cache-Control"] = "no-store, max-age=0, private"
+    response.headers["Pragma"] = "no-cache"
+    
+    # We can't return the model directly if we want to set headers easily with the default return type annotation,
+    # but we can assume FastAPI handles the return value if we just return the object, 
+    # unless we change the signature to modify response object passed in.
+    # Better approach: Accept Response object and set headers on it.
+    return SessionStatus(authenticated=True, username=username, is_admin=is_admin)
 
 @router.get(
     "/session",
     response_model=SessionStatus,
-    summary="Check whether the admin session is active.",
+    summary="Check whether the admin or user session is active.",
 )
-async def session_status(request: Request) -> SessionStatus:
-    """Return a boolean indicating whether the admin is authenticated."""
+async def session_status(request: Request, response: Response) -> SessionStatus:
+    """Return session status for Admin or SSO users."""
+
+    # Explicitly disable caching to prevent Vercel/CDN from serving 
+    # one user's session state to others.
+    response.headers["Cache-Control"] = "no-store, max-age=0, private"
+    response.headers["Pragma"] = "no-cache"
 
     settings = get_settings()
+    
+    # 1. Check Admin Session
     session_jwt = request.session.get("jwt")
     session_email = request.session.get("admin_email")
 
-    if not session_jwt or not session_email:
-        return SessionStatus(authenticated=False)
+    if session_jwt and session_email:
+        try:
+            payload = decode_token(session_jwt)
+            subject = str(payload.get("sub", "")).lower()
+            expected = settings.admin_email.lower()
+            
+            if subject == expected and session_email.lower() == expected:
+                return SessionStatus(
+                    authenticated=True, 
+                    username=payload.get("sub"), 
+                    is_admin=payload.get("is_admin")
+                )
+        except HTTPException:
+            # Token invalid, fall through to check SSO
+            pass
 
-    try:
-        payload = decode_token(session_jwt)
-    except HTTPException:
-        return SessionStatus(authenticated=False)
+    # 2. Check SSO Session (set by sso.py)
+    user_id = request.session.get("user_id")
+    if user_id:
+        # Validate existence of user_name/email if needed, but existence of user_id 
+        # implies a valid log in from sso.py
+        user_name = request.session.get("user_name", "User")
+        return SessionStatus(
+            authenticated=True, 
+            username=user_name, 
+            is_admin=False
+        )
 
-    subject = str(payload.get("sub", "")).lower()
-    expected = settings.admin_email.lower()
-    if subject != expected or session_email.lower() != expected:
-        return SessionStatus(authenticated=False)
-
-    username = payload.get("sub")
-    is_admin = payload.get("is_admin")
-    return SessionStatus(authenticated=True, username=username, is_admin=is_admin)
+    return SessionStatus(authenticated=False)
 
 
 @router.post(
@@ -167,6 +212,13 @@ async def logout(response: Response, request: Request) -> Response:
         httponly=True,
         secure=settings.session_cookie_secure,
         samesite=settings.session_cookie_samesite,
+    )
+    response.delete_cookie(
+        key="auth_state",
+        path="/",
+        domain=settings.session_cookie_domain,
+        secure=settings.session_cookie_secure,
+        samesite="lax",
     )
     response.status_code = status.HTTP_204_NO_CONTENT
     return response
