@@ -47,10 +47,15 @@ async def init_database() -> None:
     """Verify that the database connection is healthy."""
 
     try:
+        # Create all tables defined in the metadata
+        # This will create comments, blog_posts, user_profiles, etc. if they don't exist
+        async with engine.begin() as conn:
+            await conn.run_sync(BaseModel.metadata.create_all)
+
         async with engine.connect() as connection:
             await connection.execute(text("SELECT 1"))
     except Exception as exc:  # pragma: no cover - defensive startup guard
-        logger.exception("Database connectivity check failed")
+        logger.exception("Database initialization failed")
         raise
 
 
