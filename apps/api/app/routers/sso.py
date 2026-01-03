@@ -124,7 +124,15 @@ async def login(provider: str, request: Request):
         raise HTTPException(status_code=404, detail=f"Provider {provider} not configured")
     
     redirect_uri = get_redirect_uri(request, provider)
+    logger.info(f"SSO Login for {provider}")
+    logger.info(f"Redirect URI for OAuth: {redirect_uri}")
+    logger.info(f"Session keys BEFORE authorize_redirect: {list(request.session.keys())}")
+    
     resp = await client.authorize_redirect(request, redirect_uri)
+    
+    logger.info(f"Session keys AFTER authorize_redirect: {list(request.session.keys())}")
+    logger.info(f"State stored in session: {request.session.get(f'_state_{provider}')}")
+    logger.info(f"Response headers: {dict(resp.headers)}")
     
     # Prevent caching of the redirect to ensure a fresh state/session is generated every time
     resp.headers["Cache-Control"] = "no-store, max-age=0, private"
