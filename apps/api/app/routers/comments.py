@@ -52,12 +52,17 @@ async def list_comments(
     session: AsyncSession = Depends(get_session)
 ) -> List[Comment]:
     """Return all top-level comments for a specific blog post with nested replies."""
+    from sqlalchemy.orm import selectinload
     
-    # Only fetch top-level comments (no parent); replies are loaded via relationship
+    # Only fetch top-level comments (no parent); eagerly load replies
     stmt = (
         select(CommentRecord)
         .where(CommentRecord.blog_post_id == blog_id)
         .where(CommentRecord.parent_id.is_(None))
+        .options(
+            selectinload(CommentRecord.replies).selectinload(CommentRecord.user),
+            selectinload(CommentRecord.replies).selectinload(CommentRecord.replies),
+        )
         .order_by(CommentRecord.created_at.desc())
     )
     result = await session.execute(stmt)
