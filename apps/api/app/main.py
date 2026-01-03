@@ -154,15 +154,11 @@ def create_app() -> FastAPI:
     app.add_middleware(SlowAPIMiddleware)
     app.add_middleware(GZipMiddleware, minimum_size=512)
 
-    # Trust all proxies when running on Vercel to ensure https is detected
-    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
-
-    if settings.trusted_hosts:
-        app.add_middleware(
-            TrustedHostMiddleware,
-            allowed_hosts=list(settings.trusted_hosts),
-        )
-
+    # Session Middleware (Must be AFTER ProxyHeaders but BEFORE App in execution chain,
+    # so added BEFORE ProxyHeaders in code order logic? No, Last Added = First Executed.
+    # We want Request -> ProxyHeaders -> Session -> App.
+    # So ProxyHeaders must be added AFTER Session.
+    
     app.add_middleware(
         SessionMiddleware,
         secret_key=settings.session_secret_key,
@@ -172,6 +168,15 @@ def create_app() -> FastAPI:
         https_only=True,  # Force secure for SameSite=None
         domain=settings.session_cookie_domain,
     )
+
+    # Trust all proxies when running on Vercel to ensure https is detected
+    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
+
+    if settings.trusted_hosts:
+        app.add_middleware(
+            TrustedHostMiddleware,
+            allowed_hosts=list(settings.trusted_hosts),
+        )
 
     app.add_middleware(
         CORSMiddleware,
