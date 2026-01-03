@@ -140,6 +140,18 @@ async def login(provider: str, request: Request):
     resp.headers["Cache-Control"] = "no-store, max-age=0, private"
     resp.headers["Pragma"] = "no-cache"
     
+    # DIAGNOSTIC: Set a manual test cookie to verify cookies work
+    resp.set_cookie(
+        key="sso_test_cookie",
+        value="test_value",
+        max_age=300,
+        path="/",
+        secure=True,
+        httponly=False,
+        samesite="lax",
+    )
+    logger.info(f"Final response headers after set_cookie: {dict(resp.headers)}")
+    
     return resp
 
 
