@@ -48,7 +48,8 @@ const CommentForm = ({ blogId, onCommentAdded, user }) => {
         }
     };
 
-    const renderLoginButtons = () => {
+    // If user is not logged in, show login buttons
+    if (!user) {
         if (enabledProviders.length === 0) return null;
 
         const providerButtons = [
@@ -77,6 +78,7 @@ const CommentForm = ({ blogId, onCommentAdded, user }) => {
         );
     }
 
+    // User is logged in - show comment form
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div className="flex items-center gap-3 mb-2">
