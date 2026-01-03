@@ -12,6 +12,11 @@ if (!configuredBaseUrl && !isDevelopment) {
 const API_BASE_URL = !isDevelopment ? '/api' : (configuredBaseUrl || fallbackDevelopmentBase);
 const API_BASE = API_BASE_URL.replace(/\/$/, '');
 
+// For SSO flows, we MUST use the direct API domain to maintain cookie consistency.
+// The browser must navigate directly to the API (not through the proxy) so the
+// session cookie is set on the same domain that receives the OAuth callback.
+const SSO_API_BASE = (process.env.REACT_APP_SSO_API_BASE_URL || '').trim() || API_BASE;
+
 const validateApiBaseUrl = (value) => {
   if (value.startsWith('/')) {
     return;
@@ -154,7 +159,8 @@ export const api = {
   session: () => request('/auth/session'),
   listSsoProviders: () => request('/auth/sso/providers'),
   ssoLogin: (provider) => {
-    window.location.href = `${API_BASE}/auth/sso/${provider}/login`;
+    // Use SSO_API_BASE (direct API domain) to ensure cookie domain consistency
+    window.location.href = `${SSO_API_BASE}/auth/sso/${provider}/login`;
   },
 
   // Blogs
