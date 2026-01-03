@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { Reply, Trash2, MessageSquare } from 'lucide-react';
+import { Reply, Trash2 } from 'lucide-react';
 import { api } from '../../lib/api';
 
 const CommentItem = ({ comment, user, blogId, onCommentAdded, onCommentDeleted, depth = 0 }) => {
