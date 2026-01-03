@@ -221,6 +221,10 @@ async def auth_callback(
         if provider == "github":
             token_url = "https://github.com/login/oauth/access_token"
             headers = {"Accept": "application/json"}
+        elif provider == "google":
+            token_url = "https://oauth2.googleapis.com/token"
+            headers = {"Content-Type": "application/x-www-form-urlencoded"}
+            token_data["grant_type"] = "authorization_code"
         else:
             headers = {"Content-Type": "application/x-www-form-urlencoded"}
             token_data["grant_type"] = "authorization_code"
