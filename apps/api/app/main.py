@@ -170,6 +170,7 @@ def create_app() -> FastAPI:
         max_age=settings.session_cookie_max_age_seconds,
         same_site=settings.session_cookie_samesite,
         https_only=True,  # Force secure for SameSite=None
+        domain=settings.session_cookie_domain,
     )
 
     app.add_middleware(
