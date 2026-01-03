@@ -125,32 +125,33 @@ async def login(provider: str, request: Request):
     
     redirect_uri = get_redirect_uri(request, provider)
     logger.info(f"SSO Login for {provider}")
-    logger.info(f"Request scheme: {request.scope.get('scheme')}")
-    logger.info(f"X-Forwarded-Proto: {request.headers.get('x-forwarded-proto')}")
     logger.info(f"Redirect URI for OAuth: {redirect_uri}")
-    logger.info(f"Session keys BEFORE authorize_redirect: {list(request.session.keys())}")
     
     resp = await client.authorize_redirect(request, redirect_uri)
     
-    logger.info(f"Session keys AFTER authorize_redirect: {list(request.session.keys())}")
-    logger.info(f"State stored in session: {request.session.get(f'_state_{provider}')}")
-    logger.info(f"Response headers: {dict(resp.headers)}")
+    # Extract state from the redirect URL
+    from urllib.parse import urlparse, parse_qs
+    location = resp.headers.get("location", "")
+    parsed = urlparse(location)
+    state_params = parse_qs(parsed.query)
+    state = state_params.get("state", [None])[0]
     
-    # Prevent caching of the redirect to ensure a fresh state/session is generated every time
+    logger.info(f"OAuth state to store: {state}")
+    
+    # Store state in our own cookie (SessionMiddleware isn't working in serverless)
+    if state:
+        resp.set_cookie(
+            key=f"oauth_state_{provider}",
+            value=state,
+            max_age=600,  # 10 minutes
+            path="/",
+            secure=True,
+            httponly=True,
+            samesite="lax",
+        )
+    
     resp.headers["Cache-Control"] = "no-store, max-age=0, private"
     resp.headers["Pragma"] = "no-cache"
-    
-    # DIAGNOSTIC: Set a manual test cookie to verify cookies work
-    resp.set_cookie(
-        key="sso_test_cookie",
-        value="test_value",
-        max_age=300,
-        path="/",
-        secure=True,
-        httponly=False,
-        samesite="lax",
-    )
-    logger.info(f"Final response headers after set_cookie: {dict(resp.headers)}")
     
     return resp
 
@@ -171,10 +172,28 @@ async def auth_callback(
         logger.info(f"SSO Callback for {provider}")
         logger.info(f"Redirect URI: {redirect_uri}")
         logger.info(f"Cookies received: {list(request.cookies.keys())}")
-        logger.info(f"Host header: {request.headers.get('host')}")
-        logger.info(f"Session keys: {list(request.session.keys())}")
-        logger.info(f"State in session: {request.session.get(f'_state_{provider}')}")
-        logger.info(f"State in URL: {request.query_params.get('state')}")
+        
+        # Get state from URL and our custom cookie
+        url_state = request.query_params.get('state')
+        cookie_state = request.cookies.get(f'oauth_state_{provider}')
+        
+        logger.info(f"State in URL: {url_state}")
+        logger.info(f"State in cookie: {cookie_state}")
+        
+        # Verify states match
+        if not cookie_state or cookie_state != url_state:
+            logger.error(f"State mismatch! Cookie: {cookie_state}, URL: {url_state}")
+            raise HTTPException(
+                status_code=400,
+                detail="OAuth state mismatch. Please try logging in again."
+            )
+        
+        # Inject the state into the session so Authlib can find it
+        # Authlib expects the state in a specific session key format
+        session_key = f"_state_{provider}_{url_state}"
+        request.session[session_key] = {"redirect_uri": redirect_uri, "state": url_state}
+        
+        logger.info(f"Injected state into session: {session_key}")
         
         token = await client.authorize_access_token(request, redirect_uri=redirect_uri)
         user_info = token.get("userinfo")

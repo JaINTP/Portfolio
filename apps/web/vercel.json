@@ -50,7 +50,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://portfolio-api-mocha-iota.vercel.app/api/:path*"
+      "destination": "https://api.jaintp.com/api/:path*"
     },
     {
       "source": "/(.*)",
