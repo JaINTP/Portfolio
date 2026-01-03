@@ -126,7 +126,13 @@ async def login(provider: str, request: Request):
         raise HTTPException(status_code=404, detail=f"Provider {provider} not configured")
     
     redirect_uri = get_redirect_uri(request, provider)
-    return await client.authorize_redirect(request, redirect_uri)
+    resp = await client.authorize_redirect(request, redirect_uri)
+    
+    # Prevent caching of the redirect to ensure a fresh state/session is generated every time
+    resp.headers["Cache-Control"] = "no-store, max-age=0, private"
+    resp.headers["Pragma"] = "no-cache"
+    
+    return resp
 
 
 @router.get("/{provider}/callback", name="auth_callback")
@@ -222,6 +228,11 @@ async def auth_callback(
             httponly=False,  # Explicitly accessible to JS
             samesite="lax",
         )
+        
+        # Prevent caching of the callback result
+        response.headers["Cache-Control"] = "no-store, max-age=0, private"
+        response.headers["Pragma"] = "no-cache"
+        
         return response
 
     except Exception as e:
