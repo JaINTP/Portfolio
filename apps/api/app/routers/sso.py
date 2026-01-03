@@ -117,7 +117,7 @@ async def debug_session(request: Request):
     }
 
 @router.get("/{provider}/login")
-async def login(provider: str, request: Request):
+async def login(provider: str, request: Request, return_to: str = "/blog"):
     """Initiate SSO login flow."""
     client = oauth.create_client(provider)
     if not client:
@@ -126,6 +126,7 @@ async def login(provider: str, request: Request):
     redirect_uri = get_redirect_uri(request, provider)
     logger.info(f"SSO Login for {provider}")
     logger.info(f"Redirect URI for OAuth: {redirect_uri}")
+    logger.info(f"Return to after auth: {return_to}")
     
     resp = await client.authorize_redirect(request, redirect_uri)
     
@@ -149,6 +150,17 @@ async def login(provider: str, request: Request):
             httponly=True,
             samesite="lax",
         )
+    
+    # Store the return URL so we can redirect back after auth
+    resp.set_cookie(
+        key="oauth_return_to",
+        value=return_to,
+        max_age=600,
+        path="/",
+        secure=True,
+        httponly=True,
+        samesite="lax",
+    )
     
     resp.headers["Cache-Control"] = "no-store, max-age=0, private"
     resp.headers["Pragma"] = "no-cache"
@@ -288,20 +300,37 @@ async def auth_callback(
         logger.info(f"Successfully logged in user {email} via {provider}")
 
         # Redirect back to frontend
-        # Redirect back to frontend
         frontend_url = str(settings.frontend_origin).rstrip("/")
-        response = RedirectResponse(url=f"{frontend_url}/blog")
+        
+        # Get the original page from cookie (set during login) or default to /blog
+        return_to = request.cookies.get("oauth_return_to", "/blog")
+        response = RedirectResponse(url=f"{frontend_url}{return_to}")
         
         # Set visible cookie for frontend state detection
+        # Use the frontend domain so the cookie is accessible there
+        from urllib.parse import urlparse
+        frontend_host = urlparse(frontend_url).netloc
+        # Extract root domain for cookie (e.g., "jaintp.com" from "www.jaintp.com")
+        domain_parts = frontend_host.split(".")
+        if len(domain_parts) >= 2:
+            cookie_domain = f".{'.'.join(domain_parts[-2:])}"  # e.g., ".jaintp.com"
+        else:
+            cookie_domain = None
+        
         response.set_cookie(
             key="auth_state",
             value="true",
             max_age=settings.session_cookie_max_age_seconds,
             path="/",
-            secure=settings.session_cookie_secure,
+            domain=cookie_domain,  # Set for the entire domain
+            secure=True,
             httponly=False,  # Explicitly accessible to JS
             samesite="lax",
         )
+        
+        # Clear the oauth cookies
+        response.delete_cookie("oauth_state_github", path="/")
+        response.delete_cookie("oauth_return_to", path="/")
         
         # Prevent caching of the callback result
         response.headers["Cache-Control"] = "no-store, max-age=0, private"

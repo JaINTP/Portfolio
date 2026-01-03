@@ -160,7 +160,9 @@ export const api = {
   listSsoProviders: () => request('/auth/sso/providers'),
   ssoLogin: (provider) => {
     // Use SSO_API_BASE (direct API domain) to ensure cookie domain consistency
-    window.location.href = `${SSO_API_BASE}/auth/sso/${provider}/login`;
+    // Pass the current path so user returns to the same page after login
+    const returnTo = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.href = `${SSO_API_BASE}/auth/sso/${provider}/login?return_to=${returnTo}`;
   },
 
   // Blogs
