@@ -9,7 +9,7 @@ if (!configuredBaseUrl && !isDevelopment) {
   );
 }
 
-const API_BASE_URL = configuredBaseUrl || fallbackDevelopmentBase;
+const API_BASE_URL = !isDevelopment ? '/api' : (configuredBaseUrl || fallbackDevelopmentBase);
 const API_BASE = API_BASE_URL.replace(/\/$/, '');
 
 const validateApiBaseUrl = (value) => {

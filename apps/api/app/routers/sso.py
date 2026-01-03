@@ -151,6 +151,7 @@ async def auth_callback(
         logger.info(f"SSO Callback for {provider}")
         logger.info(f"Redirect URI: {redirect_uri}")
         logger.info(f"Cookies received: {list(request.cookies.keys())}")
+        logger.info(f"Host header: {request.headers.get('host')}")
         logger.info(f"Session keys: {list(request.session.keys())}")
         logger.info(f"State in session: {request.session.get(f'_state_{provider}')}")
         logger.info(f"State in URL: {request.query_params.get('state')}")
