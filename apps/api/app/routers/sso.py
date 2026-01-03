@@ -125,6 +125,8 @@ async def login(provider: str, request: Request):
     
     redirect_uri = get_redirect_uri(request, provider)
     logger.info(f"SSO Login for {provider}")
+    logger.info(f"Request scheme: {request.scope.get('scheme')}")
+    logger.info(f"X-Forwarded-Proto: {request.headers.get('x-forwarded-proto')}")
     logger.info(f"Redirect URI for OAuth: {redirect_uri}")
     logger.info(f"Session keys BEFORE authorize_redirect: {list(request.session.keys())}")
     
