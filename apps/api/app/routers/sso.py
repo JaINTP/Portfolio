@@ -71,16 +71,14 @@ if settings.meta_client_id and settings.meta_client_secret:
     )
 
 def get_redirect_uri(request: Request, provider: str) -> str:
-    """Generate the correctly-routed redirect URI for SSO callbacks."""
-    # Respect X-Forwarded-Host if present (common in Vercel/proxy setups)
-    forwarded_host = request.headers.get("x-forwarded-host")
-    forwarded_proto = request.headers.get("x-forwarded-proto", "https")
+    """Generate the callback URI using the API's own domain.
     
-    if forwarded_host:
-        # Construct URI using the forwarded host to stay on the frontend domain
-        return f"{forwarded_proto}://{forwarded_host}/api/auth/sso/{provider}/callback"
-    
-    # Fallback to standard url_for for local development
+    This ensures cookies set during the OAuth flow remain on the same domain
+    throughout the entire process, avoiding cross-domain cookie issues with
+    proxied setups like Vercel rewrites.
+    """
+    # Use the actual request URL (the API domain), not X-Forwarded-Host
+    # This ensures the cookie domain matches the callback domain
     return str(request.url_for("auth_callback", provider=provider))
 
 @router.get("/providers")
