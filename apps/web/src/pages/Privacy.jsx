@@ -18,7 +18,7 @@ const Privacy = () => {
                                 We collect information when you interact with this site, specifically:
                             </p>
                             <ul className="list-disc pl-6 space-y-2">
-                                <li><strong>SSO Data:</strong> When you log in via Google, GitHub, X, or Meta, we receive your name, email, and profile picture.</li>
+                                <li><strong>SSO Data:</strong> When you log in via Google, GitHub, or X, we receive your name, email, and profile picture.</li>
                                 <li><strong>Comments:</strong> We store the content of any comments you post on the blog.</li>
                                 <li><strong>Usage Data:</strong> We may collect anonymous data about how you interact with the site to improve the user experience.</li>
                             </ul>
