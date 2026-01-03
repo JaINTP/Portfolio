@@ -48,6 +48,7 @@ class SessionStatus(BaseModel):
     authenticated: bool
     username: str | None = None
     is_admin: bool | None = None
+    user_id: str | None = None
 
 
 async def parse_auth_payload(request: Request) -> AuthRequest:
@@ -188,7 +189,8 @@ async def session_status(request: Request, response: Response) -> SessionStatus:
         return SessionStatus(
             authenticated=True, 
             username=user_name, 
-            is_admin=False
+            is_admin=False,
+            user_id=user_id
         )
 
     return SessionStatus(authenticated=False)

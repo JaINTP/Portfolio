@@ -187,6 +187,7 @@ export const api = {
   deleteBlog: (id) => request(`/blogs/${id}`, { method: 'DELETE' }),
   listComments: (blogId) => request(`/blogs/${blogId}/comments`),
   postComment: (blogId, data) => request(`/blogs/${blogId}/comments`, { method: 'POST', body: data }),
+  deleteComment: (blogId, commentId) => request(`/blogs/${blogId}/comments/${commentId}`, { method: 'DELETE' }),
 
   // Projects
   listProjects: () => requestWithFallback('/projects', '/projects/data.js', 'projects'),

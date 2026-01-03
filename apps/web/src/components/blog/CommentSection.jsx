@@ -31,9 +31,9 @@ const CommentSection = ({ blogId }) => {
             const session = await api.session();
             if (session.authenticated) {
                 setUser({
+                    id: session.user_id,
                     name: session.username,
                     isAdmin: session.is_admin,
-                    // For SSO users, we might need a different session check or combine them
                 });
             }
         } catch (error) {
@@ -46,8 +46,52 @@ const CommentSection = ({ blogId }) => {
         checkSession();
     }, [blogId]);
 
-    const handleCommentInfo = (newComment) => {
-        setComments((prev) => [newComment, ...prev]);
+    const handleCommentAdded = (newComment, parentId = null) => {
+        if (parentId) {
+            // Add reply to parent's replies array
+            setComments((prev) => addReplyToComments(prev, parentId, newComment));
+        } else {
+            // Add top-level comment
+            setComments((prev) => [newComment, ...prev]);
+        }
+    };
+
+    const addReplyToComments = (comments, parentId, newReply) => {
+        return comments.map((comment) => {
+            if (comment.id === parentId) {
+                return {
+                    ...comment,
+                    replies: [...(comment.replies || []), newReply],
+                };
+            }
+            if (comment.replies && comment.replies.length > 0) {
+                return {
+                    ...comment,
+                    replies: addReplyToComments(comment.replies, parentId, newReply),
+                };
+            }
+            return comment;
+        });
+    };
+
+    const handleCommentDeleted = (commentId) => {
+        setComments((prev) => removeCommentFromTree(prev, commentId));
+    };
+
+    const removeCommentFromTree = (comments, commentId) => {
+        return comments
+            .filter((comment) => comment.id !== commentId)
+            .map((comment) => ({
+                ...comment,
+                replies: comment.replies ? removeCommentFromTree(comment.replies, commentId) : [],
+            }));
+    };
+
+    // Count total comments including replies
+    const countComments = (comments) => {
+        return comments.reduce((count, comment) => {
+            return count + 1 + (comment.replies ? countComments(comment.replies) : 0);
+        }, 0);
     };
 
     return (
@@ -55,18 +99,25 @@ const CommentSection = ({ blogId }) => {
             <div className="flex items-center gap-3 mb-8">
                 <MessageSquare className="w-6 h-6 text-cyan-400" />
                 <h2 className="text-2xl font-bold text-white">
-                    Comments ({comments.length})
+                    Comments ({countComments(comments)})
                 </h2>
             </div>
 
-            <CommentForm blogId={blogId} onCommentAdded={handleCommentInfo} user={user} />
+            <CommentForm blogId={blogId} onCommentAdded={handleCommentAdded} user={user} />
 
             <div className="space-y-6 mt-10">
                 {loading ? (
                     <p className="text-gray-400">Loading comments...</p>
                 ) : comments.length > 0 ? (
                     comments.map((comment) => (
-                        <CommentItem key={comment.id} comment={comment} />
+                        <CommentItem 
+                            key={comment.id} 
+                            comment={comment} 
+                            user={user}
+                            blogId={blogId}
+                            onCommentAdded={handleCommentAdded}
+                            onCommentDeleted={handleCommentDeleted}
+                        />
                     ))
                 ) : (
                     <p className="text-gray-500 italic">No comments yet. Be the first to share your thoughts!</p>
