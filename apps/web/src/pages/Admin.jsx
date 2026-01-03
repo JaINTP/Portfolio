@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Save, Plus, Trash2, LogOut, RefreshCcw } from 'lucide-react';
+import { Save, Plus, Trash2, LogOut, RefreshCcw, MessageSquare, ExternalLink } from 'lucide-react';
 import { api } from '../lib/api';
 import { resolveMediaUrl } from '../lib/utils';
 
@@ -55,6 +55,8 @@ const Admin = () => {
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [blogs, setBlogs] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [comments, setComments] = useState([]);
+  const [showDeletedComments, setShowDeletedComments] = useState(false);
   const [about, setAbout] = useState(null);
   const [aboutId, setAboutId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -106,6 +108,12 @@ const Admin = () => {
     loadAllContent();
   }, [hasSession]);
 
+  useEffect(() => {
+    if (hasSession && activeTab === 'comments' && comments.length === 0) {
+      loadComments(showDeletedComments);
+    }
+  }, [hasSession, activeTab]);
+
   const setMessage = (message) => {
     setStatusMessage(message);
     setTimeout(() => setStatusMessage(null), 4000);
@@ -125,6 +133,7 @@ const Admin = () => {
     setDogImageUploading(false);
     setBlogImageUploading(false);
     setProjectImageUploading(false);
+    setComments([]);
   };
 
   const handleSessionExpired = () => {
@@ -183,6 +192,26 @@ const Admin = () => {
       setError(err.message || 'Failed to load content.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadComments = async (includeDeleted = false) => {
+    try {
+      const data = await api.listAllComments(includeDeleted);
+      setComments(data ?? []);
+    } catch (err) {
+      handleRequestError(err, 'Failed to load comments.');
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm('Delete this comment?')) return;
+    try {
+      await api.adminDeleteComment(commentId);
+      setMessage('Comment deleted.');
+      await loadComments(showDeletedComments);
+    } catch (err) {
+      handleRequestError(err, 'Unable to delete comment.');
     }
   };
 
@@ -620,8 +649,8 @@ const Admin = () => {
         </div>
       </div>
 
-      <div className="flex gap-3 mb-8">{['blogs', 'projects', 'about'].map((tab) => {
-        const labelMap = { blogs: 'Blogs', projects: 'Projects', about: 'About' };
+      <div className="flex gap-3 mb-8">{['blogs', 'projects', 'about', 'comments'].map((tab) => {
+        const labelMap = { blogs: 'Blogs', projects: 'Projects', about: 'About', comments: 'Comments' };
         return tabButton(tab, labelMap[tab]);
       })}</div>
 
@@ -1308,6 +1337,94 @@ const Admin = () => {
               {aboutId ? 'Update Profile' : 'Create Profile'}
             </button>
           </form>
+        </div>
+      )}
+
+      {!loading && activeTab === 'comments' && (
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <MessageSquare className="w-6 h-6 text-cyan-400" />
+              <h3 className="text-xl font-semibold text-white">All Comments</h3>
+              <span className="text-sm text-gray-400">({comments.length} total)</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 text-sm text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={showDeletedComments}
+                  onChange={(e) => {
+                    setShowDeletedComments(e.target.checked);
+                    loadComments(e.target.checked);
+                  }}
+                  className="rounded bg-white/10 border-white/20"
+                />
+                Show deleted
+              </label>
+              <button
+                onClick={() => loadComments(showDeletedComments)}
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-gray-200 rounded-lg transition-colors text-sm"
+              >
+                <RefreshCcw className="w-3.5 h-3.5" />
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          {comments.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">No comments found.</p>
+          ) : (
+            <div className="space-y-4">
+              {comments.map((comment) => (
+                <div
+                  key={comment.id}
+                  className={`bg-black/30 border border-white/5 rounded-xl p-4 ${comment.is_deleted ? 'opacity-60' : ''}`}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className={`font-medium ${comment.is_deleted ? 'text-gray-500 italic' : 'text-white'}`}>
+                          {comment.user_name}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {new Date(comment.created_at).toLocaleString()}
+                        </span>
+                        {comment.is_deleted && (
+                          <span className="text-xs bg-red-500/20 text-red-300 px-2 py-0.5 rounded">
+                            Deleted
+                          </span>
+                        )}
+                      </div>
+                      <p className={`text-sm mb-2 ${comment.is_deleted ? 'text-gray-500 italic' : 'text-gray-300'}`}>
+                        {comment.content}
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <span>on</span>
+                        <a
+                          href={`/blog/${comment.blog_post_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                        >
+                          {comment.blog_title}
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    </div>
+                    {!comment.is_deleted && (
+                      <button
+                        onClick={() => handleDeleteComment(comment.id)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-300 rounded-lg transition-colors text-sm"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

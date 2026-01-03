@@ -189,6 +189,10 @@ export const api = {
   postComment: (blogId, data) => request(`/blogs/${blogId}/comments`, { method: 'POST', body: data }),
   deleteComment: (blogId, commentId) => request(`/blogs/${blogId}/comments/${commentId}`, { method: 'DELETE' }),
 
+  // Admin
+  listAllComments: (includeDeleted = false) => request(`/admin/comments?include_deleted=${includeDeleted}`),
+  adminDeleteComment: (commentId) => request(`/admin/comments/${commentId}`, { method: 'DELETE' }),
+
   // Projects
   listProjects: () => requestWithFallback('/projects', '/projects/data.js', 'projects'),
   getProject: async (id) => {

@@ -147,3 +147,97 @@ async def delete_comment(
     # Soft delete: set deleted_at timestamp
     comment.deleted_at = datetime.now(timezone.utc)
     await session.commit()
+
+
+# Create a separate router for admin endpoints
+admin_router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+def require_admin(request: Request):
+    """Dependency to verify admin access."""
+    # Check for JWT admin session first
+    session_jwt = request.session.get("jwt")
+    session_email = request.session.get("admin_email")
+    
+    if session_jwt and session_email:
+        if session_email.lower() == str(settings.admin_email).lower():
+            return True
+    
+    # Check SSO user email against admin
+    user_email = request.session.get("user_email")
+    if user_email and user_email.lower() == str(settings.admin_email).lower():
+        return True
+    
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Admin access required."
+    )
+
+
+class AdminComment(Comment):
+    """Extended comment schema for admin view with blog title."""
+    blog_title: str = ""
+
+
+@admin_router.get("/comments", response_model=List[AdminComment])
+async def list_all_comments(
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+    _admin: bool = Depends(require_admin),
+    include_deleted: bool = False,
+) -> List[AdminComment]:
+    """List all comments across all blog posts (admin only)."""
+    
+    stmt = (
+        select(CommentRecord)
+        .order_by(CommentRecord.created_at.desc())
+    )
+    
+    if not include_deleted:
+        stmt = stmt.where(CommentRecord.deleted_at.is_(None))
+    
+    result = await session.execute(stmt)
+    records = result.scalars().all()
+    
+    # Get blog titles for display
+    blog_ids = set(r.blog_post_id for r in records)
+    blog_titles = {}
+    if blog_ids:
+        blogs_stmt = select(BlogPostRecord.id, BlogPostRecord.title).where(BlogPostRecord.id.in_(blog_ids))
+        blogs_result = await session.execute(blogs_stmt)
+        blog_titles = {row[0]: row[1] for row in blogs_result}
+    
+    comments = []
+    for r in records:
+        comment_data = Comment.from_record(r, include_replies=False)
+        admin_comment = AdminComment(
+            **comment_data.model_dump(),
+            blog_title=blog_titles.get(r.blog_post_id, "Unknown"),
+        )
+        comments.append(admin_comment)
+    
+    return comments
+
+
+@admin_router.delete("/comments/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def admin_delete_comment(
+    comment_id: UUID,
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+    _admin: bool = Depends(require_admin),
+):
+    """Admin endpoint to soft-delete any comment."""
+    from datetime import datetime, timezone
+    
+    stmt = select(CommentRecord).where(CommentRecord.id == comment_id)
+    result = await session.execute(stmt)
+    comment = result.scalar_one_or_none()
+    
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    
+    if comment.deleted_at is not None:
+        raise HTTPException(status_code=404, detail="Comment already deleted")
+    
+    comment.deleted_at = datetime.now(timezone.utc)
+    await session.commit()

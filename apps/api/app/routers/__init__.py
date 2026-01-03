@@ -11,6 +11,7 @@ from .status_checks import router as status_checks_router
 from .uploads import router as uploads_router
 from .sso import router as sso_router
 from .comments import router as comments_router
+from .comments import admin_router as admin_comments_router
 from .cache import router as cache_router
 
 api_router = APIRouter(prefix="/api")
@@ -20,6 +21,7 @@ api_router.include_router(auth_router)
 api_router.include_router(sso_router)
 api_router.include_router(blogs_router)
 api_router.include_router(comments_router)
+api_router.include_router(admin_comments_router)
 api_router.include_router(cache_router)
 api_router.include_router(projects_router)
 api_router.include_router(about_router)
