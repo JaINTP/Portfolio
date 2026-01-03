@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, Calendar, Tag, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Clock, Calendar, Tag, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
 import { api } from '../lib/api';
 import ResponsiveSection from '../components/layout/ResponsiveSection';
 import { useBreakpoint } from '../hooks/use-breakpoint';
@@ -386,10 +386,16 @@ const Blog = () => {
                           })
                           : '—'}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {blog.read_time}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="flex items-center gap-1">
+                          <MessageSquare className="w-3 h-3" />
+                          {blog.comment_count ?? 0}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {blog.read_time}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </Link>

@@ -112,12 +112,14 @@ class BlogPost(BlogPostBase):
     id: UUID
     created_at: datetime
     updated_at: datetime
+    comment_count: int = 0
 
     @classmethod
-    def from_record(cls, record: BlogPostRecord) -> "BlogPost":
+    def from_record(cls, record: BlogPostRecord, comment_count: int = 0) -> "BlogPost":
         """Convert ORM record into response schema."""
-
-        return cls.model_validate(record)
+        data = record.__dict__.copy()
+        data["comment_count"] = comment_count
+        return cls.model_validate(data)
 
 
 class BlogPostCreate(BlogPostBase):

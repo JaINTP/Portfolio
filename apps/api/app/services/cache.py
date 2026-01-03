@@ -57,12 +57,31 @@ class CacheService:
                 raise
 
     async def _refresh_blogs(self, session: AsyncSession) -> None:
-        """Load all blog posts ordered by publication date."""
-        result = await session.execute(
-            select(BlogPostRecord).order_by(BlogPostRecord.published_at.desc())
+        """Load all blog posts ordered by publication date with comment counts."""
+        from sqlalchemy import func
+        from ..models.comment import CommentRecord
+        
+        # Subquery for comment counts (excluding deleted)
+        comment_count_subq = (
+            select(
+                CommentRecord.blog_post_id,
+                func.count(CommentRecord.id).label("comment_count")
+            )
+            .where(CommentRecord.deleted_at.is_(None))
+            .group_by(CommentRecord.blog_post_id)
+            .subquery()
         )
-        records = result.scalars().all()
-        self._blogs = [BlogPost.from_record(record) for record in records]
+        
+        # Main query with left join to get counts
+        stmt = (
+            select(BlogPostRecord, func.coalesce(comment_count_subq.c.comment_count, 0).label("comment_count"))
+            .outerjoin(comment_count_subq, BlogPostRecord.id == comment_count_subq.c.blog_post_id)
+            .order_by(BlogPostRecord.published_at.desc())
+        )
+        
+        result = await session.execute(stmt)
+        rows = result.all()
+        self._blogs = [BlogPost.from_record(row[0], comment_count=row[1]) for row in rows]
 
     async def _refresh_projects(self, session: AsyncSession) -> None:
         """Load all projects ordered by creation date."""

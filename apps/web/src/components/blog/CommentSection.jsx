@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 import CommentForm from './CommentForm';
 import CommentItem from './CommentItem';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, LogOut } from 'lucide-react';
 
 const CommentSection = ({ blogId }) => {
     const [comments, setComments] = useState([]);
@@ -38,6 +38,17 @@ const CommentSection = ({ blogId }) => {
             }
         } catch (error) {
             // Not logged in or session expired
+        }
+    };
+
+    const handleLogout = async () => {
+        try {
+            await api.logout();
+            // Clear the auth_state cookie
+            document.cookie = 'auth_state=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+            setUser(null);
+        } catch (error) {
+            console.error('Logout failed:', error);
         }
     };
 
@@ -96,11 +107,22 @@ const CommentSection = ({ blogId }) => {
 
     return (
         <div className="mt-16 pt-12 border-t border-white/10">
-            <div className="flex items-center gap-3 mb-8">
-                <MessageSquare className="w-6 h-6 text-cyan-400" />
-                <h2 className="text-2xl font-bold text-white">
-                    Comments ({countComments(comments)})
-                </h2>
+            <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                    <MessageSquare className="w-6 h-6 text-cyan-400" />
+                    <h2 className="text-2xl font-bold text-white">
+                        Comments ({countComments(comments)})
+                    </h2>
+                </div>
+                {user && (
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+                    >
+                        <LogOut className="w-4 h-4" />
+                        Sign out
+                    </button>
+                )}
             </div>
 
             <CommentForm blogId={blogId} onCommentAdded={handleCommentAdded} user={user} />
