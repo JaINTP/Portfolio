@@ -8,7 +8,7 @@
  * never fall back to potentially unsafe defaults.
  */
 
-const ALLOWED_ENV_VARS = new Set(['REACT_APP_API_BASE_URL']);
+const ALLOWED_ENV_VARS = new Set(['REACT_APP_API_BASE_URL', 'REACT_APP_SSO_API_BASE_URL']);
 
 const fail = (message) => {
   console.error(`[env] ${message}`);
