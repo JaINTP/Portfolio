@@ -26,6 +26,34 @@ const ScientificCalculations = () => {
   const [isVisible, setIsVisible] = useState(false);
   useEffect(() => setIsVisible(true), []);
 
+  const Tutorial = ({ title, steps, formula, explanation }) => (
+    <div className="mt-12 pt-10 border-t border-white/5">
+      <div className="flex items-center space-x-2 mb-6 text-[10px] font-black uppercase tracking-widest text-cyan-500">
+        <Info className="w-3 h-3" />
+        <span>{title} Guide</span>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        <div className="lg:col-span-2 space-y-4">
+          <p className="text-sm text-gray-400 leading-relaxed font-medium">{explanation}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {steps.map((step, i) => (
+              <div key={i} className="flex items-start space-x-3 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-[10px] font-black text-cyan-500">{i+1}</span>
+                <span className="text-[11px] text-gray-500 leading-snug">{step}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="bg-black/40 rounded-3xl p-6 border border-white/5 flex flex-col justify-center items-center text-center">
+            <p className="text-[9px] font-black uppercase text-gray-600 mb-4 tracking-widest">Governing Equation</p>
+            <div className="text-white/90 scale-110">
+                <BlockMath math={formula} />
+            </div>
+        </div>
+      </div>
+    </div>
+  );
+
   // --- TAB 1: Equilibrium & Preparation ---
   const [substanceId, setSubstanceId] = useState('acetic');
   const [calcMode, setCalcMode] = useState('find_ph'); 
@@ -244,6 +272,17 @@ const ScientificCalculations = () => {
                             )}
                         </div>
                     </div>
+                    <Tutorial 
+                        title="Equilibrium & Prep"
+                        explanation="Calculate pH or required mass for strong/weak acids and bases. This tool solves the exact quadratic for weak species, ensuring precision at any concentration."
+                        steps={[
+                            "Select your substance from the list to load its chemical constants (pKa, MW, etc.).",
+                            "Choose Mode: 'Conc → pH' to find acidity, or 'pH → Conc' to find required amount for a target.",
+                            "Toggle 'Dilution On' if you are preparing your solution from a liquid stock solution.",
+                            "The calculated Mass/Volume requirement helps you prepare the exact amount for your target volume."
+                        ]}
+                        formula="K_a = \frac{[H^+][A^-]}{[HA]}"
+                    />
               </TabsContent>
 
               {/* TAB: Buffer Solver */}
@@ -281,6 +320,17 @@ const ScientificCalculations = () => {
                         </Card>
                     )}
                 </div>
+                <Tutorial 
+                    title="Henderson-Hasselbalch"
+                    explanation="A buffer solution resists changes in pH when small amounts of acid or base are added. For maximum efficiency, choose a buffer system whose pKa is close to your target pH."
+                    steps={[
+                        "Enter the pKa of your buffering agent (e.g., 4.76 for acetate, 7.21 for phosphate).",
+                        "Input the final molar concentration of the acid [HA] and its conjugate base [A⁻].",
+                        "The resulting pH reflects the equilibrium state of the mixture.",
+                        "The Base/Acid ratio indicates the protonation state of your buffer system."
+                    ]}
+                    formula="pH = pK_a + \log\frac{[A^-]}{[HA]}"
+                />
               </TabsContent>
 
               {/* TAB: Beer-Lambert */}
@@ -315,6 +365,17 @@ const ScientificCalculations = () => {
                         </div>
                     )}
                 </Card>
+                <Tutorial 
+                    title="Beer-Lambert"
+                    explanation="The Beer-Lambert law relates the attenuation of light to the properties of the material through which the light is traveling. It is fundamental in quantitative spectroscopy."
+                    steps={[
+                        "Leave exactly one field blank: this is the value the solver will determine for you.",
+                        "Absorbance (A) is a unitless measure of how much light is blocked by the sample.",
+                        "Molar Absorptivity (ε) is a constant unique to your substance at a specific wavelength.",
+                        "Path Length (b) is usually 1.0 cm (the standard width of a UV-Vis cuvette)."
+                    ]}
+                    formula="A = \epsilon \cdot b \cdot c"
+                />
               </TabsContent>
 
               {/* TAB: Stock Assay */}
@@ -349,6 +410,17 @@ const ScientificCalculations = () => {
                         </Card>
                     )}
                 </div>
+                <Tutorial 
+                    title="Stock Assay"
+                    explanation="Commercial reagents are often sold as concentrated liquid stocks defined by density and weight percentage. This tool converts manufacturer data into Molarity."
+                    steps={[
+                        "Check the bottle label for Density (ρ) in g/mL and Assay % (P) by weight.",
+                        "Enter the Molecular Weight (MW) of the substance in g/mol.",
+                        "The calculated Molarity is the 'true' concentration of the concentrated stock.",
+                        "Use this stock molarity in the Preparation tab to calculate precise dilutions."
+                    ]}
+                    formula="M = \frac{\rho \cdot P \cdot 10}{MW}"
+                />
               </TabsContent>
             </Tabs>
 
