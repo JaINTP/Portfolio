@@ -8,6 +8,19 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../co
 import 'katex/dist/katex.min.css';
 import { InlineMath, BlockMath } from 'react-katex';
 
+const SUBSTANCES = [
+  { id: 'custom', name: 'Custom (Strong)', type: 'strong_acid', ka: null },
+  { id: 'hcl', name: 'Hydrochloric Acid (HCl)', type: 'strong_acid', ka: null },
+  { id: 'hno3', name: 'Nitric Acid (HNO₃)', type: 'strong_acid', ka: null },
+  { id: 'h2so4', name: 'Sulfuric Acid (H₂SO₄)', type: 'strong_acid', ka: null, diprotic: true },
+  { id: 'naoh', name: 'Sodium Hydroxide (NaOH)', type: 'strong_base', kb: null },
+  { id: 'koh', name: 'Potassium Hydroxide (KOH)', type: 'strong_base', kb: null },
+  { id: 'acetic', name: 'Acetic Acid (CH₃COOH)', type: 'weak_acid', ka: 1.8e-5, pka: 4.74 },
+  { id: 'formic', name: 'Formic Acid (HCOOH)', type: 'weak_acid', ka: 1.8e-4, pka: 3.74 },
+  { id: 'nh3', name: 'Ammonia (NH₃)', type: 'weak_base', kb: 1.8e-5, pkb: 4.74 },
+  { id: 'pyridine', name: 'Pyridine (C₅H₅N)', type: 'weak_base', kb: 1.7e-9, pkb: 8.77 },
+];
+
 const ScientificCalculations = () => {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -22,6 +35,11 @@ const ScientificCalculations = () => {
   // pH State
   const [phInput, setPhInput] = useState({ value: '', type: 'ph' }); // type: ph, h, poh, oh
   const [phResult, setPhResult] = useState(null);
+  
+  // Substance-based pH State
+  const [substanceId, setSubstanceId] = useState('custom');
+  const [substanceConc, setSubstanceConc] = useState('');
+  const [substanceResult, setSubstanceResult] = useState(null);
 
   // Molarity State
   const [molarity, setMolarity] = useState({ mass: '', molarMass: '', volume: '', molarity: '' });
@@ -68,7 +86,7 @@ const ScientificCalculations = () => {
     }
   }, [dilution]);
 
-  // pH Logic
+  // pH Logic (Direct)
   useEffect(() => {
     const val = parseFloat(phInput.value);
     if (isNaN(val)) {
@@ -123,6 +141,67 @@ const ScientificCalculations = () => {
 
     setPhResult({ results, steps });
   }, [phInput]);
+
+  // Substance-based pH Logic
+  useEffect(() => {
+    const conc = parseFloat(substanceConc);
+    const sub = SUBSTANCES.find(s => s.id === substanceId);
+    if (isNaN(conc) || !sub) {
+        setSubstanceResult(null);
+        return;
+    }
+
+    let ph, poh, h, oh;
+    let steps = [];
+
+    if (sub.type === 'strong_acid') {
+        h = sub.diprotic ? conc * 2 : conc;
+        ph = -Math.log10(h);
+        poh = 14 - ph;
+        oh = Math.pow(10, -poh);
+        steps = [
+            `\\text{Strong Acid Dissociation: } [H^+] = ${sub.diprotic ? '2 \\times ' : ''} C_{acid} = ${h.toExponential(4)} \\text{ M}`,
+            `pH = -\\log_{10}([H^+]) = -\\log_{10}(${h.toExponential(4)}) = ${ph.toFixed(2)}`,
+            `pOH = 14 - pH = ${poh.toFixed(2)}`
+        ];
+    } else if (sub.type === 'strong_base') {
+        oh = conc;
+        poh = -Math.log10(oh);
+        ph = 14 - poh;
+        h = Math.pow(10, -ph);
+        steps = [
+            `\\text{Strong Base Dissociation: } [OH^-] = C_{base} = ${oh.toExponential(4)} \\text{ M}`,
+            `pOH = -\\log_{10}([OH^-]) = -\\log_{10}(${oh.toExponential(4)}) = ${poh.toFixed(2)}`,
+            `pH = 14 - pOH = ${ph.toFixed(2)}`
+        ];
+    } else if (sub.type === 'weak_acid') {
+        // [H+] = sqrt(Ka * C)
+        h = Math.sqrt(sub.ka * conc);
+        ph = -Math.log10(h);
+        poh = 14 - ph;
+        oh = Math.pow(10, -poh);
+        steps = [
+            `\\text{Weak Acid Equilibrium: } [H^+] \\approx \\sqrt{K_a \\times C}`,
+            `[H^+] = \\sqrt{${sub.ka.toExponential(2)} \\times ${conc}} = ${h.toExponential(4)} \\text{ M}`,
+            `pH = -\\log_{10}(${h.toExponential(4)}) = ${ph.toFixed(2)}`,
+            `K_a = ${sub.ka.toExponential(2)} \\text{ (p}K_a = ${sub.pka}\\text{)}`
+        ];
+    } else if (sub.type === 'weak_base') {
+        oh = Math.sqrt(sub.kb * conc);
+        poh = -Math.log10(oh);
+        ph = 14 - poh;
+        h = Math.pow(10, -ph);
+        steps = [
+            `\\text{Weak Base Equilibrium: } [OH^-] \\approx \\sqrt{K_b \\times C}`,
+            `[OH^-] = \\sqrt{${sub.kb.toExponential(2)} \\times ${conc}} = ${oh.toExponential(4)} \\text{ M}`,
+            `pOH = -\\log_{10}(${oh.toExponential(4)}) = ${poh.toFixed(2)}`,
+            `pH = 14 - pOH = ${ph.toFixed(2)}`,
+            `K_b = ${sub.kb.toExponential(2)} \\text{ (p}K_b = ${sub.pkb}\\text{)}`
+        ];
+    }
+
+    setSubstanceResult({ ph, poh, h, oh, steps });
+  }, [substanceId, substanceConc]);
 
   // Molarity Logic
   useEffect(() => {
@@ -326,86 +405,147 @@ const ScientificCalculations = () => {
 
               {/* pH Tab */}
               <TabsContent value="ph" className="mt-0 outline-none">
-                <Card className="bg-white/5 border-white/10 text-white overflow-hidden">
-                  <CardHeader className="border-b border-white/5 bg-white/[0.02]">
-                    <CardTitle className="text-xl font-semibold flex items-center">
-                      <Thermometer className="w-5 h-5 mr-2 text-cyan-400" />
-                      pH & Concentration Converter
-                    </CardTitle>
-                    <CardDescription className="text-gray-400">
-                      Seamlessly convert between pH, pOH, and ion concentrations.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-6 space-y-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-3">
-                        <Label htmlFor="ph-type" className="text-sm font-medium text-gray-300">Input Type</Label>
-                        <select
-                          id="ph-type"
-                          value={phInput.type}
-                          onChange={(e) => setPhInput({ ...phInput, type: e.target.value })}
-                          className="w-full h-11 px-3 rounded-md bg-black/40 border border-white/10 text-white focus:border-cyan-500/50 outline-none appearance-none cursor-pointer"
-                        >
-                          <option value="ph">pH</option>
-                          <option value="h">[H⁺] (Molarity)</option>
-                          <option value="poh">pOH</option>
-                          <option value="oh">[OH⁻] (Molarity)</option>
-                        </select>
-                      </div>
-                      <div className="space-y-3">
-                        <Label htmlFor="ph-val" className="text-sm font-medium text-gray-300">Enter Value</Label>
-                        <Input
-                          id="ph-val"
-                          type="number"
-                          placeholder="e.g. 7.0"
-                          value={phInput.value}
-                          onChange={(e) => setPhInput({ ...phInput, value: e.target.value })}
-                          className="bg-black/40 border-white/10 focus:border-cyan-500/50 h-11"
-                        />
-                      </div>
-                    </div>
-
-                    {phResult && (
-                      <div className="animate-in fade-in slide-in-from-top-4 duration-500 space-y-6">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          {[
-                            { label: 'pH', value: phResult.results.ph.toFixed(2), color: 'text-cyan-400' },
-                            { label: '[H⁺]', value: phResult.results.h.toExponential(2), color: 'text-white' },
-                            { label: 'pOH', value: phResult.results.poh.toFixed(2), color: 'text-cyan-400' },
-                            { label: '[OH⁻]', value: phResult.results.oh.toExponential(2), color: 'text-white' },
-                          ].map((item, idx) => (
-                            <div key={idx} className="p-4 rounded-xl bg-black/40 border border-white/10 text-center">
-                              <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2">{item.label}</p>
-                              <p className={`text-lg font-bold ${item.color}`}>{item.value}</p>
-                            </div>
-                          ))}
+                <div className="space-y-6">
+                    <Card className="bg-white/5 border-white/10 text-white overflow-hidden">
+                    <CardHeader className="border-b border-white/5 bg-white/[0.02]">
+                        <CardTitle className="text-xl font-semibold flex items-center">
+                        <Thermometer className="w-5 h-5 mr-2 text-cyan-400" />
+                        Quick Converter
+                        </Thermometer>
+                        <CardDescription className="text-gray-400">
+                        Convert between pH, pOH, and ion concentrations for strong species.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-6 space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                            <Label htmlFor="ph-type" className="text-sm font-medium text-gray-300">Input Type</Label>
+                            <select
+                            id="ph-type"
+                            value={phInput.type}
+                            onChange={(e) => setPhInput({ ...phInput, type: e.target.value })}
+                            className="w-full h-11 px-3 rounded-md bg-black/40 border border-white/10 text-white focus:border-cyan-500/50 outline-none appearance-none cursor-pointer"
+                            >
+                            <option value="ph">pH</option>
+                            <option value="h">[H⁺] (Molarity)</option>
+                            <option value="poh">pOH</option>
+                            <option value="oh">[OH⁻] (Molarity)</option>
+                            </select>
+                        </div>
+                        <div className="space-y-3">
+                            <Label htmlFor="ph-val" className="text-sm font-medium text-gray-300">Enter Value</Label>
+                            <Input
+                            id="ph-val"
+                            type="number"
+                            placeholder="e.g. 7.0"
+                            value={phInput.value}
+                            onChange={(e) => setPhInput({ ...phInput, value: e.target.value })}
+                            className="bg-black/40 border-white/10 focus:border-cyan-500/50 h-11"
+                            />
+                        </div>
                         </div>
 
-                        <div className="p-6 rounded-2xl bg-cyan-500/5 border border-cyan-500/20">
-                          <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-bold mb-4">Steps & Equations</p>
-                          <div className="bg-black/40 p-4 rounded-xl border border-white/5 space-y-4">
-                            {phResult.steps.map((step, i) => (
-                              <div key={i} className={i !== 0 ? 'pt-4 border-t border-white/5' : ''}>
-                                <BlockMath math={step} />
-                              </div>
+                        {phResult && (
+                        <div className="animate-in fade-in slide-in-from-top-4 duration-500 space-y-6">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {[
+                                { label: 'pH', value: phResult.results.ph.toFixed(2), color: 'text-cyan-400' },
+                                { label: '[H⁺]', value: phResult.results.h.toExponential(2), color: 'text-white' },
+                                { label: 'pOH', value: phResult.results.poh.toFixed(2), color: 'text-cyan-400' },
+                                { label: '[OH⁻]', value: phResult.results.oh.toExponential(2), color: 'text-white' },
+                            ].map((item, idx) => (
+                                <div key={idx} className="p-4 rounded-xl bg-black/40 border border-white/10 text-center">
+                                <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2">{item.label}</p>
+                                <p className={`text-lg font-bold ${item.color}`}>{item.value}</p>
+                                </div>
                             ))}
-                          </div>
-                          
-                          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-gray-500">
-                             <div className="flex items-start space-x-2">
-                                <Info className="w-3 h-3 mt-0.5 text-cyan-400/50" />
-                                <span><strong className="text-gray-300">Relationship:</strong> <InlineMath math="pH + pOH = 14" /> (at 25°C)</span>
-                             </div>
-                             <div className="flex items-start space-x-2">
-                                <Info className="w-3 h-3 mt-0.5 text-cyan-400/50" />
-                                <span><strong className="text-gray-300">Autoprotolysis:</strong> <InlineMath math="K_w = [H^+][OH^-] = 10^{-14}" /></span>
-                             </div>
-                          </div>
+                            </div>
+
+                            <div className="p-6 rounded-2xl bg-cyan-500/5 border border-cyan-500/20">
+                            <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-bold mb-4">Steps & Equations</p>
+                            <div className="bg-black/40 p-4 rounded-xl border border-white/5 space-y-4">
+                                {phResult.steps.map((step, i) => (
+                                <div key={i} className={i !== 0 ? 'pt-4 border-t border-white/5' : ''}>
+                                    <BlockMath math={step} />
+                                </div>
+                                ))}
+                            </div>
+                            </div>
                         </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                        )}
+                    </CardContent>
+                    </Card>
+
+                    {/* Substance-based Calculator */}
+                    <Card className="bg-white/5 border-white/10 text-white overflow-hidden">
+                    <CardHeader className="border-b border-white/5 bg-white/[0.02]">
+                        <CardTitle className="text-xl font-semibold flex items-center">
+                        <FlaskConical className="w-5 h-5 mr-2 text-cyan-400" />
+                        Calculate from Substance
+                        </CardTitle>
+                        <CardDescription className="text-gray-400">
+                        Select a specific acid or base to calculate its resulting pH based on concentration.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-6 space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-3">
+                                <Label htmlFor="sub-select" className="text-sm font-medium text-gray-300">Select Substance</Label>
+                                <select
+                                    id="sub-select"
+                                    value={substanceId}
+                                    onChange={(e) => setSubstanceId(e.target.value)}
+                                    className="w-full h-11 px-3 rounded-md bg-black/40 border border-white/10 text-white focus:border-cyan-500/50 outline-none appearance-none cursor-pointer"
+                                >
+                                    {SUBSTANCES.map(s => (
+                                        <option key={s.id} value={s.id}>{s.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="space-y-3">
+                                <Label htmlFor="sub-conc" className="text-sm font-medium text-gray-300">Concentration (M)</Label>
+                                <Input
+                                    id="sub-conc"
+                                    type="number"
+                                    placeholder="e.g. 0.1"
+                                    value={substanceConc}
+                                    onChange={(e) => setSubstanceConc(e.target.value)}
+                                    className="bg-black/40 border-white/10 focus:border-cyan-500/50 h-11"
+                                />
+                            </div>
+                        </div>
+
+                        {substanceResult && (
+                            <div className="animate-in fade-in slide-in-from-top-4 duration-500 space-y-6">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {[
+                                        { label: 'pH', value: substanceResult.ph.toFixed(2), color: 'text-cyan-400' },
+                                        { label: '[H⁺]', value: substanceResult.h.toExponential(2), color: 'text-white' },
+                                        { label: 'pOH', value: substanceResult.poh.toFixed(2), color: 'text-cyan-400' },
+                                        { label: '[OH⁻]', value: substanceResult.oh.toExponential(2), color: 'text-white' },
+                                    ].map((item, idx) => (
+                                        <div key={idx} className="p-4 rounded-xl bg-black/40 border border-white/10 text-center">
+                                            <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2">{item.label}</p>
+                                            <p className={`text-lg font-bold ${item.color}`}>{item.value}</p>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="p-6 rounded-2xl bg-cyan-500/5 border border-cyan-500/20">
+                                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-bold mb-4">Chemical Calculation Breakdown</p>
+                                    <div className="bg-black/40 p-4 rounded-xl border border-white/5 space-y-4">
+                                        {substanceResult.steps.map((step, i) => (
+                                            <div key={i} className={i !== 0 ? 'pt-4 border-t border-white/5' : ''}>
+                                                <BlockMath math={step} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
+                    </Card>
+                </div>
               </TabsContent>
 
               {/* Molarity Tab */}
