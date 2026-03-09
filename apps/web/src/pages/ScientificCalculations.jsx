@@ -222,17 +222,17 @@ const ScientificCalculations = () => {
                                     </div>
                                     {useDilutionSource && calcMode === 'find_ph' ? (
                                         <div className="grid grid-cols-3 gap-2">
-                                            <Input placeholder="Stock M" type="number" value={stockVal.c} onChange={e=>setStockVal({...stockVal, c: e.target.value})} className="h-11 bg-black border-white/10 text-xs font-bold" />
-                                            <Input placeholder="Aliq. L" type="number" value={stockVal.v} onChange={e=>setStockVal({...stockVal, v: e.target.value})} className="h-11 bg-black border-white/10 text-xs font-bold" />
-                                            <Input placeholder="Total L" type="number" value={stockVal.totalV} onChange={e=>setStockVal({...stockVal, totalV: e.target.value})} className="h-11 bg-black border-white/10 text-xs font-bold" />
+                                            <Input placeholder="Stock M" type="number" value={stockVal.c} onChange={e=>setStockVal({...stockVal, c: e.target.value})} className="h-11 bg-black border-white/10 text-xs font-bold text-white" />
+                                            <Input placeholder="Aliq. L" type="number" value={stockVal.v} onChange={e=>setStockVal({...stockVal, v: e.target.value})} className="h-11 bg-black border-white/10 text-xs font-bold text-white" />
+                                            <Input placeholder="Total L" type="number" value={stockVal.totalV} onChange={e=>setStockVal({...stockVal, totalV: e.target.value})} className="h-11 bg-black border-white/10 text-xs font-bold text-white" />
                                         </div>
                                     ) : (
-                                        <Input type="number" value={inputVal} onChange={e=>setInputVal(e.target.value)} className="h-12 bg-black border-white/10 font-bold text-lg rounded-2xl" placeholder={calcMode === 'find_ph' ? 'Molarity' : 'pH Level'} />
+                                        <Input type="number" value={inputVal} onChange={e=>setInputVal(e.target.value)} className="h-12 bg-black border-white/10 font-bold text-lg rounded-2xl text-white" placeholder={calcMode === 'find_ph' ? 'Molarity' : 'pH Level'} />
                                     )}
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-[10px] uppercase font-black text-gray-500 ml-1">Preparation Volume (L)</Label>
-                                    <Input type="number" value={targetVolume} onChange={e=>setTargetVolume(e.target.value)} className="h-12 bg-black border-white/10 font-bold rounded-2xl" />
+                                    <Input type="number" value={targetVolume} onChange={e=>setTargetVolume(e.target.value)} className="h-12 bg-black border-white/10 font-bold rounded-2xl text-white" />
                                 </div>
                             </Card>
                         </div>
@@ -298,11 +298,11 @@ const ScientificCalculations = () => {
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="space-y-2">
                                         <Label className="text-[10px] font-black uppercase text-gray-500">[Acid] Concentration</Label>
-                                        <Input type="number" value={bufferInput.acidConc} onChange={e=>setBufferInput({...bufferInput, acidConc: e.target.value})} className="h-12 bg-black border-white/10 font-bold rounded-2xl" />
+                                        <Input type="number" value={bufferInput.acidConc} onChange={e=>setBufferInput({...bufferInput, acidConc: e.target.value})} className="h-12 bg-black border-white/10 font-bold rounded-2xl text-white" />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-[10px] font-black uppercase text-gray-500">[Base] Concentration</Label>
-                                        <Input type="number" value={bufferInput.baseConc} onChange={e=>setBufferInput({...bufferInput, baseConc: e.target.value})} className="h-12 bg-black border-white/10 font-bold rounded-2xl" />
+                                        <Input type="number" value={bufferInput.baseConc} onChange={e=>setBufferInput({...bufferInput, baseConc: e.target.value})} className="h-12 bg-black border-white/10 font-bold rounded-2xl text-white" />
                                     </div>
                                 </div>
                             </div>
@@ -360,7 +360,7 @@ const ScientificCalculations = () => {
                                             type="number" 
                                             value={beerInput[f]} 
                                             onChange={e=>setBeerInput({...beerInput, [f]: e.target.value})} 
-                                            className="h-12 bg-black border-white/10 font-bold rounded-2xl focus:ring-cyan-500" 
+                                            className="h-12 bg-black border-white/10 font-bold rounded-2xl focus:ring-cyan-500 text-white" 
                                         />
                                     </div>
                                 ))}
@@ -410,15 +410,15 @@ const ScientificCalculations = () => {
                             <div className="grid grid-cols-1 gap-6">
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black text-gray-500 uppercase">Density (g/mL)</Label>
-                                    <Input type="number" value={assayInput.density} onChange={e=>setAssayInput({...assayInput, density: e.target.value})} className="h-12 bg-black border-white/10 font-bold rounded-2xl" />
+                                    <Input type="number" value={assayInput.density} onChange={e=>setAssayInput({...assayInput, density: e.target.value})} className="h-12 bg-black border-white/10 font-bold rounded-2xl text-white" />
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black text-gray-500 uppercase">Assay (wt %)</Label>
-                                    <Input type="number" value={assayInput.percent} onChange={e=>setAssayInput({...assayInput, percent: e.target.value})} className="h-12 bg-black border-white/10 font-bold rounded-2xl" />
+                                    <Input type="number" value={assayInput.percent} onChange={e=>setAssayInput({...assayInput, percent: e.target.value})} className="h-12 bg-black border-white/10 font-bold rounded-2xl text-white" />
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black text-gray-500 uppercase">Molecular Weight (g/mol)</Label>
-                                    <Input type="number" value={assayInput.mw} onChange={e=>setAssayInput({...assayInput, mw: e.target.value})} className="h-12 bg-black border-white/10 font-bold rounded-2xl" />
+                                    <Input type="number" value={assayInput.mw} onChange={e=>setAssayInput({...assayInput, mw: e.target.value})} className="h-12 bg-black border-white/10 font-bold rounded-2xl text-white" />
                                 </div>
                             </div>
                         </Card>
