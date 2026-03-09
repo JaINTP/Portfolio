@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calculator, Beaker, Droplets, Thermometer, FlaskConical, Info } from 'lucide-react';
+import { Calculator, Beaker, Droplets, Thermometer, FlaskConical, Info, ArrowRightLeft } from 'lucide-react';
 import ResponsiveSection from '../components/layout/ResponsiveSection';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 import { Input } from '../components/ui/input';
@@ -40,20 +40,21 @@ const ScientificCalculations = () => {
   const [dilution, setDilution] = useState({ c1: '', v1: '', c2: '', v2: '' });
   const [dilutionResult, setDilutionResult] = useState(null);
 
-  // pH State
-  const [phInput, setPhInput] = useState({ value: '', type: 'ph' }); // type: ph, h, poh, oh
+  // pH State (Direct Converter)
+  const [phInput, setPhInput] = useState({ value: '', type: 'ph' }); 
   const [phResult, setPhResult] = useState(null);
   
   // Substance-based pH State
   const [substanceId, setSubstanceId] = useState('custom');
-  const [substanceConc, setSubstanceConc] = useState('');
+  const [calcMode, setCalcMode] = useState('find_ph'); // find_ph or find_m
+  const [inputVal, setInputVal] = useState(''); // can be concentration or pH
   const [substanceResult, setSubstanceResult] = useState(null);
 
   // Molarity State
   const [molarity, setMolarity] = useState({ mass: '', molarMass: '', volume: '', molarity: '' });
   const [molarityResult, setMolarityResult] = useState(null);
 
-  // PPB Conversion State (Molarity to ppb)
+  // PPB Conversion State
   const [ppbConv, setPpbConv] = useState({ molarity: '', molarMass: '' });
   const [ppbResult, setPpbResult] = useState(null);
 
@@ -94,7 +95,7 @@ const ScientificCalculations = () => {
     }
   }, [dilution]);
 
-  // pH Logic (Direct)
+  // pH Logic (Direct Converter)
   useEffect(() => {
     const val = parseFloat(phInput.value);
     if (isNaN(val)) {
@@ -150,106 +151,167 @@ const ScientificCalculations = () => {
     setPhResult({ results, steps });
   }, [phInput]);
 
-  // Substance-based pH Logic
+  // Substance-based Logic (Forward & Reverse)
   useEffect(() => {
-    const conc = parseFloat(substanceConc);
+    const val = parseFloat(inputVal);
     const sub = SUBSTANCES.find(s => s.id === substanceId);
-    if (isNaN(conc) || !sub) {
+    if (isNaN(val) || !sub) {
         setSubstanceResult(null);
         return;
     }
 
-    let ph, poh, h, oh;
+    let ph, poh, h, oh, m;
     let steps = [];
+    let error = null;
 
-    if (sub.type === 'strong_acid') {
-        h = sub.diprotic ? conc * 2 : conc;
-        ph = -Math.log10(h);
+    if (calcMode === 'find_ph') {
+        const conc = val;
+        if (sub.type === 'strong_acid') {
+            h = sub.diprotic ? conc * 2 : conc;
+            ph = -Math.log10(h);
+            poh = 14 - ph;
+            oh = Math.pow(10, -poh);
+            steps = [
+                `\\text{Strong Acid Dissociation: } [H^+] = ${sub.diprotic ? '2 \\times ' : ''} C_{acid} = ${h.toExponential(4)} \\text{ M}`,
+                `pH = -\\log_{10}([H^+]) = -\\log_{10}(${h.toExponential(4)}) = ${ph.toFixed(2)}`,
+                `pOH = 14 - pH = ${poh.toFixed(2)}`
+            ];
+        } else if (sub.type === 'strong_base') {
+            oh = conc;
+            poh = -Math.log10(oh);
+            ph = 14 - poh;
+            h = Math.pow(10, -ph);
+            steps = [
+                `\\text{Strong Base Dissociation: } [OH^-] = C_{base} = ${oh.toExponential(4)} \\text{ M}`,
+                `pOH = -\\log_{10}([OH^-]) = -\\log_{10}(${oh.toExponential(4)}) = ${poh.toFixed(2)}`,
+                `pH = 14 - pOH = ${ph.toFixed(2)}`
+            ];
+        } else if (sub.type === 'weak_acid') {
+            h = Math.sqrt(sub.ka * conc);
+            ph = -Math.log10(h);
+            poh = 14 - ph;
+            oh = Math.pow(10, -poh);
+            steps = [
+                `\\text{Weak Acid Equilibrium: } [H^+] \\approx \\sqrt{K_a \\times C}`,
+                `[H^+] = \\sqrt{${sub.ka.toExponential(2)} \\times ${conc}} = ${h.toExponential(4)} \\text{ M}`,
+                `pH = -\\log_{10}(${h.toExponential(4)}) = ${ph.toFixed(2)}`,
+                `K_a = ${sub.ka.toExponential(2)} \\text{ (p}K_a = ${sub.pka}\\text{)}`
+            ];
+        } else if (sub.type === 'weak_base') {
+            oh = Math.sqrt(sub.kb * conc);
+            poh = -Math.log10(oh);
+            ph = 14 - poh;
+            h = Math.pow(10, -ph);
+            steps = [
+                `\\text{Weak Base Equilibrium: } [OH^-] \\approx \\sqrt{K_b \\times C}`,
+                `[OH^-] = \\sqrt{${sub.kb.toExponential(2)} \\times ${conc}} = ${oh.toExponential(4)} \\text{ M}`,
+                `pOH = -\\log_{10}(${oh.toExponential(4)}) = ${poh.toFixed(2)}`,
+                `pH = 14 - pOH = ${ph.toFixed(2)}`,
+                `K_b = ${sub.kb.toExponential(2)} \\text{ (p}K_b = ${sub.pkb}\\text{)}`
+            ];
+        } else if (sub.type === 'salt_basic') {
+            const kh = KW / sub.ka;
+            oh = Math.sqrt(kh * conc);
+            poh = -Math.log10(oh);
+            ph = 14 - poh;
+            h = Math.pow(10, -ph);
+            steps = [
+                `\\text{Salt Hydrolysis (Anion): } ${sub.conjugate} + H_2O \\rightleftharpoons HA + OH^-`,
+                `K_h = \\frac{K_w}{K_a} = \\frac{10^{-14}}{${sub.ka.toExponential(2)}} = ${kh.toExponential(2)}`,
+                `[OH^-] = \\sqrt{K_h \\times C_{salt}} = \\sqrt{${kh.toExponential(2)} \\times ${conc}} = ${oh.toExponential(4)} \\text{ M}`,
+                `pOH = -\\log_{10}(${oh.toExponential(4)}) = ${poh.toFixed(2)}`,
+                `pH = 14 - pOH = ${ph.toFixed(2)}`
+            ];
+        } else if (sub.type === 'salt_acidic') {
+            const kh = KW / sub.kb;
+            h = Math.sqrt(kh * conc);
+            ph = -Math.log10(h);
+            poh = 14 - ph;
+            oh = Math.pow(10, -poh);
+            steps = [
+                `\\text{Salt Hydrolysis (Cation): } ${sub.conjugate} + H_2O \\rightleftharpoons B + H_3O^+`,
+                `K_h = \\frac{K_w}{K_b} = \\frac{10^{-14}}{${sub.kb.toExponential(2)}} = ${kh.toExponential(2)}`,
+                `[H_3O^+] = \\sqrt{K_h \\times C_{salt}} = \\sqrt{${kh.toExponential(2)} \\times ${conc}} = ${h.toExponential(4)} \\text{ M}`,
+                `pH = -\\log_{10}(${h.toExponential(4)}) = ${ph.toFixed(2)}`,
+                `pOH = 14 - pH = ${poh.toFixed(2)}`
+            ];
+        } else if (sub.type === 'neutral_salt') {
+            ph = 7.00; poh = 7.00; h = 1e-7; oh = 1e-7;
+            steps = [`\\text{Neutral Salt: No hydrolysis. pH = 7.00}`];
+        }
+        m = val;
+    } else {
+        // Find Molarity from pH
+        ph = val;
         poh = 14 - ph;
-        oh = Math.pow(10, -poh);
-        steps = [
-            `\\text{Strong Acid Dissociation: } [H^+] = ${sub.diprotic ? '2 \\times ' : ''} C_{acid} = ${h.toExponential(4)} \\text{ M}`,
-            `pH = -\\log_{10}([H^+]) = -\\log_{10}(${h.toExponential(4)}) = ${ph.toFixed(2)}`,
-            `pOH = 14 - pH = ${poh.toFixed(2)}`
-        ];
-    } else if (sub.type === 'strong_base') {
-        oh = conc;
-        poh = -Math.log10(oh);
-        ph = 14 - poh;
         h = Math.pow(10, -ph);
-        steps = [
-            `\\text{Strong Base Dissociation: } [OH^-] = C_{base} = ${oh.toExponential(4)} \\text{ M}`,
-            `pOH = -\\log_{10}([OH^-]) = -\\log_{10}(${oh.toExponential(4)}) = ${poh.toFixed(2)}`,
-            `pH = 14 - pOH = ${ph.toFixed(2)}`
-        ];
-    } else if (sub.type === 'weak_acid') {
-        h = Math.sqrt(sub.ka * conc);
-        ph = -Math.log10(h);
-        poh = 14 - ph;
         oh = Math.pow(10, -poh);
-        steps = [
-            `\\text{Weak Acid Equilibrium: } [H^+] \\approx \\sqrt{K_a \\times C}`,
-            `[H^+] = \\sqrt{${sub.ka.toExponential(2)} \\times ${conc}} = ${h.toExponential(4)} \\text{ M}`,
-            `pH = -\\log_{10}(${h.toExponential(4)}) = ${ph.toFixed(2)}`,
-            `K_a = ${sub.ka.toExponential(2)} \\text{ (p}K_a = ${sub.pka}\\text{)}`
-        ];
-    } else if (sub.type === 'weak_base') {
-        oh = Math.sqrt(sub.kb * conc);
-        poh = -Math.log10(oh);
-        ph = 14 - poh;
-        h = Math.pow(10, -ph);
-        steps = [
-            `\\text{Weak Base Equilibrium: } [OH^-] \\approx \\sqrt{K_b \\times C}`,
-            `[OH^-] = \\sqrt{${sub.kb.toExponential(2)} \\times ${conc}} = ${oh.toExponential(4)} \\text{ M}`,
-            `pOH = -\\log_{10}(${oh.toExponential(4)}) = ${poh.toFixed(2)}`,
-            `pH = 14 - pOH = ${ph.toFixed(2)}`,
-            `K_b = ${sub.kb.toExponential(2)} \\text{ (p}K_b = ${sub.pkb}\\text{)}`
-        ];
-    } else if (sub.type === 'salt_basic') {
-        // Salt of weak acid + strong base (e.g. Sodium Acetate)
-        // Hydrolysis: A- + H2O <-> HA + OH-
-        // Kh = Kw / Ka
-        const kh = KW / sub.ka;
-        oh = Math.sqrt(kh * conc);
-        poh = -Math.log10(oh);
-        ph = 14 - poh;
-        h = Math.pow(10, -ph);
-        steps = [
-            `\\text{Salt Hydrolysis (Anion): } ${sub.conjugate} + H_2O \\rightleftharpoons HA + OH^-`,
-            `K_h = \\frac{K_w}{K_a} = \\frac{10^{-14}}{${sub.ka.toExponential(2)}} = ${kh.toExponential(2)}`,
-            `[OH^-] = \\sqrt{K_h \\times C_{salt}} = \\sqrt{${kh.toExponential(2)} \\times ${conc}} = ${oh.toExponential(4)} \\text{ M}`,
-            `pOH = -\\log_{10}(${oh.toExponential(4)}) = ${poh.toFixed(2)}`,
-            `pH = 14 - pOH = ${ph.toFixed(2)}`
-        ];
-    } else if (sub.type === 'salt_acidic') {
-        // Salt of strong acid + weak base (e.g. Ammonium Chloride)
-        // Hydrolysis: BH+ + H2O <-> B + H3O+
-        // Kh = Kw / Kb
-        const kh = KW / sub.kb;
-        h = Math.sqrt(kh * conc);
-        ph = -Math.log10(h);
-        poh = 14 - ph;
-        oh = Math.pow(10, -poh);
-        steps = [
-            `\\text{Salt Hydrolysis (Cation): } ${sub.conjugate} + H_2O \\rightleftharpoons B + H_3O^+`,
-            `K_h = \\frac{K_w}{K_b} = \\frac{10^{-14}}{${sub.kb.toExponential(2)}} = ${kh.toExponential(2)}`,
-            `[H_3O^+] = \\sqrt{K_h \\times C_{salt}} = \\sqrt{${kh.toExponential(2)} \\times ${conc}} = ${h.toExponential(4)} \\text{ M}`,
-            `pH = -\\log_{10}(${h.toExponential(4)}) = ${ph.toFixed(2)}`,
-            `pOH = 14 - pH = ${poh.toFixed(2)}`
-        ];
-    } else if (sub.type === 'neutral_salt') {
-        ph = 7.00;
-        poh = 7.00;
-        h = 1e-7;
-        oh = 1e-7;
-        steps = [
-            `\\text{Neutral Salt: No significant hydrolysis occurs.}`,
-            `pH = 7.00 \\text{ (at 25°C)}`
-        ];
+
+        if (sub.type === 'strong_acid') {
+            if (ph >= 7) { error = "Target pH must be acidic (< 7) for an acid."; }
+            else {
+                m = sub.diprotic ? h / 2 : h;
+                steps = [
+                    `\\text{Target } [H^+] = 10^{-pH} = 10^{-${ph}} = ${h.toExponential(4)} \\text{ M}`,
+                    `\\text{Required Molarity } (M) = ${sub.diprotic ? '[H^+]/2' : '[H^+]'} = ${m.toExponential(4)} \\text{ M}`
+                ];
+            }
+        } else if (sub.type === 'strong_base') {
+            if (ph <= 7) { error = "Target pH must be basic (> 7) for a base."; }
+            else {
+                m = oh;
+                steps = [
+                    `\\text{Target } [OH^-] = 10^{-pOH} = 10^{-${poh.toFixed(2)}} = ${oh.toExponential(4)} \\text{ M}`,
+                    `\\text{Required Molarity } (M) = [OH^-] = ${m.toExponential(4)} \\text{ M}`
+                ];
+            }
+        } else if (sub.type === 'weak_acid') {
+            if (ph >= 7) { error = "Weak acids cannot typically reach basic pH ranges alone."; }
+            else {
+                m = Math.pow(h, 2) / sub.ka;
+                steps = [
+                    `\\text{Equilibrium: } K_a \\approx \\frac{[H^+]^2}{C}`,
+                    `C = \\frac{[H^+]^2}{K_a} = \\frac{(${h.toExponential(4)})^2}{${sub.ka.toExponential(2)}} = ${m.toExponential(4)} \\text{ M}`,
+                    `K_a = ${sub.ka.toExponential(2)}`
+                ];
+            }
+        } else if (sub.type === 'weak_base') {
+            if (ph <= 7) { error = "Weak bases cannot typically reach acidic pH ranges alone."; }
+            else {
+                m = Math.pow(oh, 2) / sub.kb;
+                steps = [
+                    `\\text{Equilibrium: } K_b \\approx \\frac{[OH^-]^2}{C}`,
+                    `C = \\frac{[OH^-]^2}{K_b} = \\frac{(${oh.toExponential(4)})^2}{${sub.kb.toExponential(2)}} = ${m.toExponential(4)} \\text{ M}`,
+                    `K_b = ${sub.kb.toExponential(2)}`
+                ];
+            }
+        } else if (sub.type === 'salt_basic') {
+            if (ph <= 7) { error = "Basic salts produce pH > 7."; }
+            else {
+                const kh = KW / sub.ka;
+                m = Math.pow(oh, 2) / kh;
+                steps = [
+                    `\\text{Hydrolysis: } K_h = \\frac{K_w}{K_a} = ${kh.toExponential(2)}`,
+                    `C = \\frac{[OH^-]^2}{K_h} = \\frac{(${oh.toExponential(4)})^2}{${kh.toExponential(2)}} = ${m.toExponential(4)} \\text{ M}`
+                ];
+            }
+        } else if (sub.type === 'salt_acidic') {
+            if (ph >= 7) { error = "Acidic salts produce pH < 7."; }
+            else {
+                const kh = KW / sub.kb;
+                m = Math.pow(h, 2) / kh;
+                steps = [
+                    `\\text{Hydrolysis: } K_h = \\frac{K_w}{K_b} = ${kh.toExponential(2)}`,
+                    `C = \\frac{[H^+]^2}{K_h} = \\frac{(${h.toExponential(4)})^2}{${kh.toExponential(2)}} = ${m.toExponential(4)} \\text{ M}`
+                ];
+            }
+        } else if (sub.type === 'neutral_salt') {
+            error = "Neutral salts cannot be used to 'target' a pH other than 7.00.";
+        }
     }
 
-    setSubstanceResult({ ph, poh, h, oh, steps });
-  }, [substanceId, substanceConc]);
+    setSubstanceResult({ ph, poh, h, oh, m, steps, error });
+  }, [substanceId, calcMode, inputVal]);
 
   // Molarity Logic
   useEffect(() => {
@@ -311,7 +373,7 @@ const ScientificCalculations = () => {
       <ResponsiveSection className="pt-32 pb-20">
         <div className={`transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <div className="max-w-4xl mx-auto space-y-8">
-            {/* Brief Description Section */}
+            {/* Header */}
             <div className="space-y-4">
               <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-sm font-medium">
                 <Beaker className="w-4 h-4" />
@@ -321,26 +383,25 @@ const ScientificCalculations = () => {
                 Scientific Calculations
               </h1>
               <p className="text-gray-400 text-lg max-w-2xl">
-                A suite of essential chemical calculation tools. Use these calculators to perform common laboratory tasks such as dilutions, pH conversions, and molarity determination with high precision and full mathematical breakdowns.
+                Precision tools for laboratory workflows. Perform dilutions, convert between pH/Molarity, and determine mass requirements with full mathematical visibility.
               </p>
             </div>
 
-            {/* Calculation Selection Section */}
             <Tabs defaultValue="dilution" className="w-full">
               <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 bg-white/5 border border-white/10 p-1 mb-8">
-                <TabsTrigger value="dilution" className="data-[state=active]:bg-cyan-500 data-[state=active]:text-black">
+                <TabsTrigger value="dilution" className="data-[state=active]:bg-cyan-500 data-[state=active]:text-black transition-all">
                     <Droplets className="w-4 h-4 mr-2 hidden sm:inline" />
                     Dilution
                 </TabsTrigger>
-                <TabsTrigger value="ph" className="data-[state=active]:bg-cyan-500 data-[state=active]:text-black">
+                <TabsTrigger value="ph" className="data-[state=active]:bg-cyan-500 data-[state=active]:text-black transition-all">
                     <Thermometer className="w-4 h-4 mr-2 hidden sm:inline" />
-                    pH/pOH
+                    pH & Conc.
                 </TabsTrigger>
-                <TabsTrigger value="molarity" className="data-[state=active]:bg-cyan-500 data-[state=active]:text-black">
+                <TabsTrigger value="molarity" className="data-[state=active]:bg-cyan-500 data-[state=active]:text-black transition-all">
                     <Calculator className="w-4 h-4 mr-2 hidden sm:inline" />
                     Molarity
                 </TabsTrigger>
-                <TabsTrigger value="ppb" className="data-[state=active]:bg-cyan-500 data-[state=active]:text-black">
+                <TabsTrigger value="ppb" className="data-[state=active]:bg-cyan-500 data-[state=active]:text-black transition-all">
                     <FlaskConical className="w-4 h-4 mr-2 hidden sm:inline" />
                     M to PPB
                 </TabsTrigger>
@@ -348,7 +409,7 @@ const ScientificCalculations = () => {
 
               {/* Dilution Tab */}
               <TabsContent value="dilution" className="mt-0 outline-none">
-                <Card className="bg-white/5 border-white/10 text-white overflow-hidden">
+                <Card className="bg-white/5 border-white/10 text-white overflow-hidden shadow-2xl">
                   <CardHeader className="border-b border-white/5 bg-white/[0.02]">
                     <CardTitle className="text-xl font-semibold flex items-center">
                       <Droplets className="w-5 h-5 mr-2 text-cyan-400" />
@@ -432,17 +493,6 @@ const ScientificCalculations = () => {
                                 </div>
                               </div>
                             </div>
-                            
-                            <div className="grid grid-cols-2 gap-4 pt-2">
-                              <div className="text-xs text-gray-400 flex items-start space-x-2">
-                                <Info className="w-3 h-3 mt-0.5 text-cyan-400/50" />
-                                <span><strong className="text-gray-300">C₁, C₂:</strong> Concentrations (any consistent unit like M, %, mg/mL)</span>
-                              </div>
-                              <div className="text-xs text-gray-400 flex items-start space-x-2">
-                                <Info className="w-3 h-3 mt-0.5 text-cyan-400/50" />
-                                <span><strong className="text-gray-300">V₁, V₂:</strong> Volumes (any consistent unit like L, mL, µL)</span>
-                              </div>
-                            </div>
                           </div>
                         </div>
                       </div>
@@ -454,7 +504,7 @@ const ScientificCalculations = () => {
               {/* pH Tab */}
               <TabsContent value="ph" className="mt-0 outline-none">
                 <div className="space-y-6">
-                    <Card className="bg-white/5 border-white/10 text-white overflow-hidden">
+                    <Card className="bg-white/5 border-white/10 text-white overflow-hidden shadow-2xl">
                     <CardHeader className="border-b border-white/5 bg-white/[0.02]">
                         <CardTitle className="text-xl font-semibold flex items-center">
                         <Thermometer className="w-5 h-5 mr-2 text-cyan-400" />
@@ -524,16 +574,34 @@ const ScientificCalculations = () => {
                     </CardContent>
                     </Card>
 
-                    {/* Substance-based Calculator */}
-                    <Card className="bg-white/5 border-white/10 text-white overflow-hidden">
+                    {/* Equilibrium Solver */}
+                    <Card className="bg-white/5 border-white/10 text-white overflow-hidden shadow-2xl">
                     <CardHeader className="border-b border-white/5 bg-white/[0.02]">
-                        <CardTitle className="text-xl font-semibold flex items-center">
-                        <FlaskConical className="w-5 h-5 mr-2 text-cyan-400" />
-                        Calculate from Substance (Acids, Bases, Salts)
-                        </CardTitle>
-                        <CardDescription className="text-gray-400">
-                        Select a specific acid, base, or salt to calculate its resulting pH.
-                        </CardDescription>
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <CardTitle className="text-xl font-semibold flex items-center">
+                                    <FlaskConical className="w-5 h-5 mr-2 text-cyan-400" />
+                                    Equilibrium Solver
+                                </CardTitle>
+                                <CardDescription className="text-gray-400 mt-1">
+                                    Find pH from Concentration, or Molarity from pH.
+                                </CardDescription>
+                            </div>
+                            <div className="flex bg-black/40 rounded-lg p-1 border border-white/10 scale-90 md:scale-100">
+                                <button 
+                                    onClick={() => setCalcMode('find_ph')}
+                                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${calcMode === 'find_ph' ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/20' : 'text-gray-400 hover:text-white'}`}
+                                >
+                                    Find pH
+                                </button>
+                                <button 
+                                    onClick={() => setCalcMode('find_m')}
+                                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${calcMode === 'find_m' ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/20' : 'text-gray-400 hover:text-white'}`}
+                                >
+                                    Find Molarity
+                                </button>
+                            </div>
+                        </div>
                     </CardHeader>
                     <CardContent className="p-6 space-y-8">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -545,55 +613,62 @@ const ScientificCalculations = () => {
                                     onChange={(e) => setSubstanceId(e.target.value)}
                                     className="w-full h-11 px-3 rounded-md bg-black/40 border border-white/10 text-white focus:border-cyan-500/50 outline-none appearance-none cursor-pointer"
                                 >
-                                    <optgroup label="Strong Acids/Bases" className="bg-gray-900">
-                                        {SUBSTANCES.filter(s => s.type.startsWith('strong')).map(s => (
-                                            <option key={s.id} value={s.id}>{s.name}</option>
-                                        ))}
-                                    </optgroup>
-                                    <optgroup label="Weak Acids/Bases" className="bg-gray-900">
-                                        {SUBSTANCES.filter(s => s.type.startsWith('weak')).map(s => (
+                                    <optgroup label="Acids & Bases" className="bg-gray-900">
+                                        {SUBSTANCES.filter(s => !s.type.includes('salt')).map(s => (
                                             <option key={s.id} value={s.id}>{s.name}</option>
                                         ))}
                                     </optgroup>
                                     <optgroup label="Salts" className="bg-gray-900">
-                                        {SUBSTANCES.filter(s => s.type.startsWith('salt') || s.type === 'neutral_salt').map(s => (
+                                        {SUBSTANCES.filter(s => s.type.includes('salt')).map(s => (
                                             <option key={s.id} value={s.id}>{s.name}</option>
                                         ))}
                                     </optgroup>
                                 </select>
                             </div>
                             <div className="space-y-3">
-                                <Label htmlFor="sub-conc" className="text-sm font-medium text-gray-300">Concentration (M)</Label>
-                                <Input
-                                    id="sub-conc"
-                                    type="number"
-                                    placeholder="e.g. 0.1"
-                                    value={substanceConc}
-                                    onChange={(e) => setSubstanceConc(e.target.value)}
-                                    className="bg-black/40 border-white/10 focus:border-cyan-500/50 h-11"
-                                />
+                                <Label htmlFor="sub-input" className="text-sm font-medium text-gray-300">
+                                    {calcMode === 'find_ph' ? 'Concentration (M)' : 'Target pH Level'}
+                                </Label>
+                                <div className="relative">
+                                    <Input
+                                        id="sub-input"
+                                        type="number"
+                                        placeholder={calcMode === 'find_ph' ? 'e.g. 0.1' : 'e.g. 8.5'}
+                                        value={inputVal}
+                                        onChange={(e) => setInputVal(e.target.value)}
+                                        className="bg-black/40 border-white/10 focus:border-cyan-500/50 h-11 pr-10"
+                                    />
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-cyan-400/50">
+                                        {calcMode === 'find_ph' ? <FlaskConical className="w-4 h-4" /> : <Thermometer className="w-4 h-4" />}
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        {substanceResult && (
+                        {substanceResult && !substanceResult.error && (
                             <div className="animate-in fade-in slide-in-from-top-4 duration-500 space-y-6">
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    {[
-                                        { label: 'pH', value: substanceResult.ph.toFixed(2), color: 'text-cyan-400' },
-                                        { label: '[H⁺]', value: substanceResult.h.toExponential(2), color: 'text-white' },
-                                        { label: 'pOH', value: substanceResult.poh.toFixed(2), color: 'text-cyan-400' },
-                                        { label: '[OH⁻]', value: substanceResult.oh.toExponential(2), color: 'text-white' },
-                                    ].map((item, idx) => (
-                                        <div key={idx} className="p-4 rounded-xl bg-black/40 border border-white/10 text-center">
-                                            <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2">{item.label}</p>
-                                            <p className={`text-lg font-bold ${item.color}`}>{item.value}</p>
-                                        </div>
-                                    ))}
+                                <div className="flex justify-between items-center bg-cyan-500/10 border border-cyan-500/20 p-6 rounded-2xl relative overflow-hidden group">
+                                     <div className="absolute right-0 top-0 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
+                                        <ArrowRightLeft className="w-32 h-32 -mr-8 -mt-8" />
+                                     </div>
+                                     <div>
+                                        <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-400 font-bold mb-1">Calculated {calcMode === 'find_ph' ? 'pH' : 'Molarity'}</p>
+                                        <p className="text-4xl font-bold text-white tracking-tighter">
+                                            {calcMode === 'find_ph' ? substanceResult.ph.toFixed(2) : substanceResult.m.toExponential(4)}
+                                            <span className="ml-2 text-xs font-normal text-gray-500 uppercase tracking-widest">{calcMode === 'find_ph' ? '' : 'M'}</span>
+                                        </p>
+                                     </div>
+                                     <div className="hidden md:grid grid-cols-2 gap-x-8 gap-y-2 text-[10px] uppercase tracking-widest font-bold text-gray-500 border-l border-white/10 pl-8">
+                                        <div>pH: <span className="text-white ml-2">{substanceResult.ph.toFixed(2)}</span></div>
+                                        <div>pOH: <span className="text-white ml-2">{substanceResult.poh.toFixed(2)}</span></div>
+                                        <div>[H⁺]: <span className="text-white ml-2">{substanceResult.h.toExponential(2)}</span></div>
+                                        <div>[OH⁻]: <span className="text-white ml-2">{substanceResult.oh.toExponential(2)}</span></div>
+                                     </div>
                                 </div>
 
-                                <div className="p-6 rounded-2xl bg-cyan-500/5 border border-cyan-500/20">
+                                <div className="p-6 rounded-2xl bg-black/40 border border-white/10">
                                     <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-bold mb-4">Chemical Calculation Breakdown</p>
-                                    <div className="bg-black/40 p-4 rounded-xl border border-white/5 space-y-4">
+                                    <div className="space-y-4">
                                         {substanceResult.steps.map((step, i) => (
                                             <div key={i} className={i !== 0 ? 'pt-4 border-t border-white/5' : ''}>
                                                 <BlockMath math={step} />
@@ -603,6 +678,13 @@ const ScientificCalculations = () => {
                                 </div>
                             </div>
                         )}
+
+                        {substanceResult?.error && (
+                            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center">
+                                <Info className="w-4 h-4 mr-2" />
+                                {substanceResult.error}
+                            </div>
+                        )}
                     </CardContent>
                     </Card>
                 </div>
@@ -610,7 +692,7 @@ const ScientificCalculations = () => {
 
               {/* Molarity Tab */}
               <TabsContent value="molarity" className="mt-0 outline-none">
-                <Card className="bg-white/5 border-white/10 text-white overflow-hidden">
+                <Card className="bg-white/5 border-white/10 text-white overflow-hidden shadow-2xl">
                   <CardHeader className="border-b border-white/5 bg-white/[0.02]">
                     <CardTitle className="text-xl font-semibold flex items-center">
                       <Calculator className="w-5 h-5 mr-2 text-cyan-400" />
@@ -688,13 +770,6 @@ const ScientificCalculations = () => {
                                     <BlockMath math={molarityResult.calculation} />
                                 </div>
                             </div>
-                            
-                            <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-xs text-gray-500">
-                              <div className="flex justify-between"><span className="text-gray-300 font-medium">m:</span> <span>Mass (grams)</span></div>
-                              <div className="flex justify-between"><span className="text-gray-300 font-medium">M:</span> <span>Molarity (mol/L)</span></div>
-                              <div className="flex justify-between"><span className="text-gray-300 font-medium">V:</span> <span>Volume (Liters)</span></div>
-                              <div className="flex justify-between"><span className="text-gray-300 font-medium">MW:</span> <span>Molar Mass (g/mol)</span></div>
-                            </div>
                           </div>
                         </div>
                       </div>
@@ -705,7 +780,7 @@ const ScientificCalculations = () => {
 
               {/* PPB Tab */}
               <TabsContent value="ppb" className="mt-0 outline-none">
-                <Card className="bg-white/5 border-white/10 text-white overflow-hidden">
+                <Card className="bg-white/5 border-white/10 text-white overflow-hidden shadow-2xl">
                   <CardHeader className="border-b border-white/5 bg-white/[0.02]">
                     <CardTitle className="text-xl font-semibold flex items-center">
                       <FlaskConical className="w-5 h-5 mr-2 text-cyan-400" />
@@ -764,10 +839,6 @@ const ScientificCalculations = () => {
                                     <BlockMath math={ppbResult.calculation} />
                                 </div>
                             </div>
-                            <div className="mt-4 text-xs text-gray-500 flex items-start space-x-2">
-                                <Info className="w-3 h-3 mt-0.5 text-cyan-400/50" />
-                                <span><strong className="text-gray-300">Note:</strong> Assumes density of solvent is <InlineMath math="1.0 \text{ g/mL}" /> (standard for dilute aqueous solutions).</span>
-                            </div>
                         </div>
                       </div>
                     )}
@@ -776,7 +847,7 @@ const ScientificCalculations = () => {
               </TabsContent>
             </Tabs>
 
-            {/* Laboratory Best Practices / Extra info */}
+            {/* Laboratory Best Practices */}
             <div className="rounded-3xl border border-white/10 bg-white/5 p-8 relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
                 <Beaker className="w-32 h-32 text-cyan-400" />
