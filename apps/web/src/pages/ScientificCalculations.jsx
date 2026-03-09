@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calculator, Beaker, Droplets, Thermometer, FlaskConical, Info, ArrowRightLeft } from 'lucide-react';
+import { Calculator, Beaker, Droplets, Thermometer, FlaskConical, Info, ArrowRightLeft, Scale } from 'lucide-react';
 import ResponsiveSection from '../components/layout/ResponsiveSection';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 import { Input } from '../components/ui/input';
@@ -11,22 +11,22 @@ import { InlineMath, BlockMath } from 'react-katex';
 const KW = 1e-14;
 
 const SUBSTANCES = [
-  { id: 'custom', name: 'Custom (Strong)', type: 'strong_acid', ka: null },
-  { id: 'hcl', name: 'Hydrochloric Acid (HCl)', type: 'strong_acid', ka: null },
-  { id: 'hno3', name: 'Nitric Acid (HNO₃)', type: 'strong_acid', ka: null },
-  { id: 'h2so4', name: 'Sulfuric Acid (H₂SO₄)', type: 'strong_acid', ka: null, diprotic: true },
-  { id: 'naoh', name: 'Sodium Hydroxide (NaOH)', type: 'strong_base', kb: null },
-  { id: 'koh', name: 'Potassium Hydroxide (KOH)', type: 'strong_base', kb: null },
-  { id: 'acetic', name: 'Acetic Acid (CH₃COOH)', type: 'weak_acid', ka: 1.8e-5, pka: 4.74 },
-  { id: 'formic', name: 'Formic Acid (HCOOH)', type: 'weak_acid', ka: 1.8e-4, pka: 3.74 },
-  { id: 'nh3', name: 'Ammonia (NH₃)', type: 'weak_base', kb: 1.8e-5, pkb: 4.74 },
-  { id: 'pyridine', name: 'Pyridine (C₅H₅N)', type: 'weak_base', kb: 1.7e-9, pkb: 8.77 },
+  { id: 'custom', name: 'Custom (Strong)', type: 'strong_acid', ka: null, mw: 0 },
+  { id: 'hcl', name: 'Hydrochloric Acid (HCl)', type: 'strong_acid', ka: null, mw: 36.46 },
+  { id: 'hno3', name: 'Nitric Acid (HNO₃)', type: 'strong_acid', ka: null, mw: 63.01 },
+  { id: 'h2so4', name: 'Sulfuric Acid (H₂SO₄)', type: 'strong_acid', ka: null, diprotic: true, mw: 98.08 },
+  { id: 'naoh', name: 'Sodium Hydroxide (NaOH)', type: 'strong_base', kb: null, mw: 39.997 },
+  { id: 'koh', name: 'Potassium Hydroxide (KOH)', type: 'strong_base', kb: null, mw: 56.11 },
+  { id: 'acetic', name: 'Acetic Acid (CH₃COOH)', type: 'weak_acid', ka: 1.8e-5, pka: 4.74, mw: 60.05 },
+  { id: 'formic', name: 'Formic Acid (HCOOH)', type: 'weak_acid', ka: 1.8e-4, pka: 3.74, mw: 46.03 },
+  { id: 'nh3', name: 'Ammonia (NH₃)', type: 'weak_base', kb: 1.8e-5, pkb: 4.74, mw: 17.03 },
+  { id: 'pyridine', name: 'Pyridine (C₅H₅N)', type: 'weak_base', kb: 1.7e-9, pkb: 8.77, mw: 79.10 },
   // Salts
-  { id: 'nacl', name: 'Sodium Chloride (NaCl)', type: 'neutral_salt' },
-  { id: 'na_acetate', name: 'Sodium Acetate (NaCH₃COO)', type: 'salt_basic', ka: 1.8e-5, conjugate: 'CH₃COO⁻' },
-  { id: 'nh4cl', name: 'Ammonium Chloride (NH₄Cl)', type: 'salt_acidic', kb: 1.8e-5, conjugate: 'NH₄⁺' },
-  { id: 'nacn', name: 'Sodium Cyanide (NaCN)', type: 'salt_basic', ka: 6.2e-10, conjugate: 'CN⁻' },
-  { id: 'nh4no3', name: 'Ammonium Nitrate (NH₄NO₃)', type: 'salt_acidic', kb: 1.8e-5, conjugate: 'NH₄⁺' },
+  { id: 'nacl', name: 'Sodium Chloride (NaCl)', type: 'neutral_salt', mw: 58.44 },
+  { id: 'na_acetate', name: 'Sodium Acetate (NaCH₃COO)', type: 'salt_basic', ka: 1.8e-5, conjugate: 'CH₃COO⁻', mw: 82.03 },
+  { id: 'nh4cl', name: 'Ammonium Chloride (NH₄Cl)', type: 'salt_acidic', kb: 1.8e-5, conjugate: 'NH₄⁺', mw: 53.49 },
+  { id: 'nacn', name: 'Sodium Cyanide (NaCN)', type: 'salt_basic', ka: 6.2e-10, conjugate: 'CN⁻', mw: 49.01 },
+  { id: 'nh4no3', name: 'Ammonium Nitrate (NH₄NO₃)', type: 'salt_acidic', kb: 1.8e-5, conjugate: 'NH₄⁺', mw: 80.04 },
 ];
 
 const ScientificCalculations = () => {
@@ -45,9 +45,10 @@ const ScientificCalculations = () => {
   const [phResult, setPhResult] = useState(null);
   
   // Substance-based pH State
-  const [substanceId, setSubstanceId] = useState('custom');
-  const [calcMode, setCalcMode] = useState('find_ph'); // find_ph or find_m
-  const [inputVal, setInputVal] = useState(''); // can be concentration or pH
+  const [substanceId, setSubstanceId] = useState('na_acetate');
+  const [calcMode, setCalcMode] = useState('find_m'); // Default to finding Molarity since user asked for it
+  const [inputVal, setInputVal] = useState(''); 
+  const [targetVolume, setTargetVolume] = useState('1'); // L
   const [substanceResult, setSubstanceResult] = useState(null);
 
   // Molarity State
@@ -151,7 +152,7 @@ const ScientificCalculations = () => {
     setPhResult({ results, steps });
   }, [phInput]);
 
-  // Substance-based Logic (Forward & Reverse)
+  // Substance-based Logic (Forward & Reverse + Lab Prep)
   useEffect(() => {
     const val = parseFloat(inputVal);
     const sub = SUBSTANCES.find(s => s.id === substanceId);
@@ -310,10 +311,23 @@ const ScientificCalculations = () => {
         }
     }
 
-    setSubstanceResult({ ph, poh, h, oh, m, steps, error });
-  }, [substanceId, calcMode, inputVal]);
+    // Lab Prep Logic (Calculate Mass from determined Molarity)
+    let labPrep = null;
+    const vol = parseFloat(targetVolume);
+    if (m > 0 && vol > 0 && sub.mw > 0) {
+        const mass = m * vol * sub.mw;
+        labPrep = {
+            mass,
+            mw: sub.mw,
+            vol,
+            m
+        };
+    }
 
-  // Molarity Logic
+    setSubstanceResult({ ph, poh, h, oh, m, steps, error, labPrep });
+  }, [substanceId, calcMode, inputVal, targetVolume]);
+
+  // Molarity Logic (Generic Tab)
   useEffect(() => {
     const { mass, molarMass, volume, molarity: mol } = molarity;
     const vals = [mass, molarMass, volume, mol].filter(v => v !== '');
@@ -369,7 +383,7 @@ const ScientificCalculations = () => {
   }, [ppbConv]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black via-gray-950 to-black text-white">
+    <div className="min-h-screen bg-gradient-to-b from-black via-gray-950 to-black text-white font-sans">
       <ResponsiveSection className="pt-32 pb-20">
         <div className={`transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <div className="max-w-4xl mx-auto space-y-8">
@@ -379,27 +393,27 @@ const ScientificCalculations = () => {
                 <Beaker className="w-4 h-4" />
                 <span>Laboratory Toolbox</span>
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white to-gray-500 bg-clip-text text-transparent">
+              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white to-gray-500 bg-clip-text text-transparent tracking-tight">
                 Scientific Calculations
               </h1>
-              <p className="text-gray-400 text-lg max-w-2xl">
-                Precision tools for laboratory workflows. Perform dilutions, convert between pH/Molarity, and determine mass requirements with full mathematical visibility.
+              <p className="text-gray-400 text-lg max-w-2xl leading-relaxed">
+                Automated chemical calculations. Select a substance, define your target, and get the exact weighing requirements and full mathematical breakdown instantly.
               </p>
             </div>
 
-            <Tabs defaultValue="dilution" className="w-full">
+            <Tabs defaultValue="ph" className="w-full">
               <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 bg-white/5 border border-white/10 p-1 mb-8">
+                <TabsTrigger value="ph" className="data-[state=active]:bg-cyan-500 data-[state=active]:text-black transition-all">
+                    <Thermometer className="w-4 h-4 mr-2 hidden sm:inline" />
+                    pH & Preparation
+                </TabsTrigger>
                 <TabsTrigger value="dilution" className="data-[state=active]:bg-cyan-500 data-[state=active]:text-black transition-all">
                     <Droplets className="w-4 h-4 mr-2 hidden sm:inline" />
                     Dilution
                 </TabsTrigger>
-                <TabsTrigger value="ph" className="data-[state=active]:bg-cyan-500 data-[state=active]:text-black transition-all">
-                    <Thermometer className="w-4 h-4 mr-2 hidden sm:inline" />
-                    pH & Conc.
-                </TabsTrigger>
                 <TabsTrigger value="molarity" className="data-[state=active]:bg-cyan-500 data-[state=active]:text-black transition-all">
                     <Calculator className="w-4 h-4 mr-2 hidden sm:inline" />
-                    Molarity
+                    Generic Molarity
                 </TabsTrigger>
                 <TabsTrigger value="ppb" className="data-[state=active]:bg-cyan-500 data-[state=active]:text-black transition-all">
                     <FlaskConical className="w-4 h-4 mr-2 hidden sm:inline" />
@@ -407,11 +421,229 @@ const ScientificCalculations = () => {
                 </TabsTrigger>
               </TabsList>
 
+              {/* pH & Preparation Tab */}
+              <TabsContent value="ph" className="mt-0 outline-none space-y-6">
+                    {/* Equilibrium & Weighing Solver */}
+                    <Card className="bg-white/5 border-white/10 text-white overflow-hidden shadow-2xl ring-1 ring-white/5">
+                    <CardHeader className="border-b border-white/5 bg-white/[0.02]">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div>
+                                <CardTitle className="text-xl font-bold flex items-center text-cyan-400">
+                                    <FlaskConical className="w-5 h-5 mr-2" />
+                                    Substance Weighing & pH Solver
+                                </CardTitle>
+                                <CardDescription className="text-gray-400 mt-1">
+                                    Define your substance and target volume to get the final weighing requirement.
+                                </CardDescription>
+                            </div>
+                            <div className="flex bg-black/40 rounded-lg p-1 border border-white/10 self-start md:self-auto">
+                                <button 
+                                    onClick={() => setCalcMode('find_ph')}
+                                    className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${calcMode === 'find_ph' ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/20' : 'text-gray-400 hover:text-white'}`}
+                                >
+                                    FIND pH
+                                </button>
+                                <button 
+                                    onClick={() => setCalcMode('find_m')}
+                                    className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${calcMode === 'find_m' ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/20' : 'text-gray-400 hover:text-white'}`}
+                                >
+                                    FIND WEIGHT
+                                </button>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-6 space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="space-y-3">
+                                <Label htmlFor="sub-select" className="text-sm font-semibold text-gray-300">Substance</Label>
+                                <select
+                                    id="sub-select"
+                                    value={substanceId}
+                                    onChange={(e) => setSubstanceId(e.target.value)}
+                                    className="w-full h-11 px-3 rounded-md bg-black/40 border border-white/10 text-white focus:border-cyan-500/50 outline-none appearance-none cursor-pointer hover:bg-black/60 transition-colors"
+                                >
+                                    <optgroup label="Acids & Bases" className="bg-gray-900">
+                                        {SUBSTANCES.filter(s => !s.type.includes('salt')).map(s => (
+                                            <option key={s.id} value={s.id}>{s.name}</option>
+                                        ))}
+                                    </optgroup>
+                                    <optgroup label="Salts" className="bg-gray-900">
+                                        {SUBSTANCES.filter(s => s.type.includes('salt')).map(s => (
+                                            <option key={s.id} value={s.id}>{s.name}</option>
+                                        ))}
+                                    </optgroup>
+                                </select>
+                            </div>
+                            <div className="space-y-3">
+                                <Label htmlFor="sub-input" className="text-sm font-semibold text-gray-300">
+                                    {calcMode === 'find_ph' ? 'Concentration (M)' : 'Target pH Level'}
+                                </Label>
+                                <Input
+                                    id="sub-input"
+                                    type="number"
+                                    placeholder={calcMode === 'find_ph' ? 'e.g. 0.1' : 'e.g. 8.5'}
+                                    value={inputVal}
+                                    onChange={(e) => setInputVal(e.target.value)}
+                                    className="bg-black/40 border-white/10 focus:border-cyan-500/50 h-11"
+                                />
+                            </div>
+                            <div className="space-y-3">
+                                <Label htmlFor="target-vol" className="text-sm font-semibold text-gray-300">Final Volume (L)</Label>
+                                <Input
+                                    id="target-vol"
+                                    type="number"
+                                    placeholder="e.g. 0.5"
+                                    value={targetVolume}
+                                    onChange={(e) => setTargetVolume(e.target.value)}
+                                    className="bg-black/40 border-white/10 focus:border-cyan-500/50 h-11"
+                                />
+                            </div>
+                        </div>
+
+                        {substanceResult && !substanceResult.error && (
+                            <div className="animate-in fade-in slide-in-from-top-4 duration-500 space-y-6">
+                                {/* Result Summary Bar */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="flex flex-col justify-center bg-cyan-500/10 border border-cyan-500/20 p-6 rounded-2xl relative overflow-hidden group">
+                                        <div className="absolute right-0 top-0 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
+                                            <ArrowRightLeft className="w-24 h-24 -mr-4 -mt-4" />
+                                        </div>
+                                        <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-400 font-black mb-1">Determined pH</p>
+                                        <p className="text-4xl font-bold text-white tracking-tighter">
+                                            {substanceResult.ph.toFixed(2)}
+                                        </p>
+                                    </div>
+                                    
+                                    {substanceResult.labPrep && (
+                                        <div className="flex flex-col justify-center bg-white/[0.03] border border-white/10 p-6 rounded-2xl relative overflow-hidden group">
+                                            <div className="absolute right-0 top-0 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
+                                                <Scale className="w-24 h-24 -mr-4 -mt-4 text-white" />
+                                            </div>
+                                            <p className="text-[10px] uppercase tracking-[0.2em] text-gray-400 font-black mb-1">Required Mass</p>
+                                            <p className="text-4xl font-bold text-white tracking-tighter">
+                                                {substanceResult.labPrep.mass.toFixed(4)}
+                                                <span className="ml-2 text-sm font-medium text-gray-500">grams</span>
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Ion Concentration Details */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {[
+                                        { label: 'Molarity', value: substanceResult.m.toExponential(3) + ' M' },
+                                        { label: 'pOH', value: substanceResult.poh.toFixed(2) },
+                                        { label: '[H⁺]', value: substanceResult.h.toExponential(2) },
+                                        { label: '[OH⁻]', value: substanceResult.oh.toExponential(2) },
+                                    ].map((item, idx) => (
+                                        <div key={idx} className="p-3 rounded-xl bg-black/40 border border-white/5 text-center">
+                                            <p className="text-[9px] uppercase tracking-widest text-gray-500 font-bold mb-1">{item.label}</p>
+                                            <p className="text-sm font-mono font-bold text-gray-200">{item.value}</p>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Math Breakdown */}
+                                <div className="p-6 rounded-2xl bg-black/40 border border-white/10 space-y-6">
+                                    <div>
+                                        <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-black mb-4 flex items-center">
+                                            <Info className="w-3 h-3 mr-2 text-cyan-400/50" />
+                                            Chemical Step-by-Step
+                                        </p>
+                                        <div className="space-y-4 bg-black/20 p-4 rounded-xl border border-white/5">
+                                            {substanceResult.steps.map((step, i) => (
+                                                <div key={i} className={i !== 0 ? 'pt-4 border-t border-white/5' : ''}>
+                                                    <BlockMath math={step} />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {substanceResult.labPrep && (
+                                        <div>
+                                            <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-black mb-4">Preparation Logic</p>
+                                            <div className="bg-black/20 p-4 rounded-xl border border-white/5">
+                                                <BlockMath math={`m = M \\times V \\times MW`} />
+                                                <div className="mt-4 pt-4 border-t border-white/5">
+                                                    <BlockMath math={`m = ${substanceResult.labPrep.m.toExponential(3)} \\text{ M} \\times ${substanceResult.labPrep.vol} \\text{ L} \\times ${substanceResult.labPrep.mw} \\text{ g/mol} = ${substanceResult.labPrep.mass.toFixed(4)} \\text{ g}`} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {substanceResult?.error && (
+                            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center">
+                                <Info className="w-4 h-4 mr-2" />
+                                {substanceResult.error}
+                            </div>
+                        )}
+                    </CardContent>
+                    </Card>
+
+                    {/* Quick Unit Converter */}
+                    <Card className="bg-white/5 border-white/10 text-white overflow-hidden shadow-xl">
+                    <CardHeader className="border-b border-white/5 bg-white/[0.02] py-4">
+                        <CardTitle className="text-md font-bold flex items-center">
+                        <Thermometer className="w-4 h-4 mr-2 text-cyan-400" />
+                        Quick Ion Converter
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="ph-type" className="text-xs uppercase text-gray-500 font-bold">Input Type</Label>
+                            <select
+                            id="ph-type"
+                            value={phInput.type}
+                            onChange={(e) => setPhInput({ ...phInput, type: e.target.value })}
+                            className="w-full h-10 px-3 rounded-md bg-black/40 border border-white/10 text-white focus:border-cyan-500/50 outline-none appearance-none cursor-pointer"
+                            >
+                            <option value="ph">pH</option>
+                            <option value="h">[H⁺]</option>
+                            <option value="poh">pOH</option>
+                            <option value="oh">[OH⁻]</option>
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="ph-val" className="text-xs uppercase text-gray-500 font-bold">Value</Label>
+                            <Input
+                            id="ph-val"
+                            type="number"
+                            placeholder="e.g. 7.0"
+                            value={phInput.value}
+                            onChange={(e) => setPhInput({ ...phInput, value: e.target.value })}
+                            className="bg-black/40 border-white/10 focus:border-cyan-500/50 h-10"
+                            />
+                        </div>
+                        </div>
+
+                        {phResult && (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in duration-300">
+                            {[
+                                { label: 'pH', value: phResult.results.ph.toFixed(2), color: 'text-cyan-400' },
+                                { label: '[H⁺]', value: phResult.results.h.toExponential(2), color: 'text-white' },
+                                { label: 'pOH', value: phResult.results.poh.toFixed(2), color: 'text-cyan-400' },
+                                { label: '[OH⁻]', value: phResult.results.oh.toExponential(2), color: 'text-white' },
+                            ].map((item, idx) => (
+                                <div key={idx} className="p-3 rounded-xl bg-black/40 border border-white/5 text-center">
+                                    <p className="text-[9px] uppercase tracking-widest text-gray-500 font-bold mb-1">{item.label}</p>
+                                    <p className={`text-sm font-bold ${item.color}`}>{item.value}</p>
+                                </div>
+                            ))}
+                        </div>
+                        )}
+                    </CardContent>
+                    </Card>
+              </TabsContent>
+
               {/* Dilution Tab */}
               <TabsContent value="dilution" className="mt-0 outline-none">
                 <Card className="bg-white/5 border-white/10 text-white overflow-hidden shadow-2xl">
                   <CardHeader className="border-b border-white/5 bg-white/[0.02]">
-                    <CardTitle className="text-xl font-semibold flex items-center">
+                    <CardTitle className="text-xl font-bold flex items-center">
                       <Droplets className="w-5 h-5 mr-2 text-cyan-400" />
                       Dilution Calculator <span className="ml-2 text-sm font-normal text-gray-400 font-mono italic">(C₁V₁ = C₂V₂)</span>
                     </CardTitle>
@@ -422,7 +654,7 @@ const ScientificCalculations = () => {
                   <CardContent className="p-6 space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-3">
-                        <Label htmlFor="c1" className="text-sm font-medium text-gray-300">Initial Concentration (<InlineMath math="C_1" />)</Label>
+                        <Label htmlFor="c1" className="text-sm font-semibold text-gray-300">Initial Concentration (<InlineMath math="C_1" />)</Label>
                         <Input
                           id="c1"
                           type="number"
@@ -433,7 +665,7 @@ const ScientificCalculations = () => {
                         />
                       </div>
                       <div className="space-y-3">
-                        <Label htmlFor="v1" className="text-sm font-medium text-gray-300">Initial Volume (<InlineMath math="V_1" />)</Label>
+                        <Label htmlFor="v1" className="text-sm font-semibold text-gray-300">Initial Volume (<InlineMath math="V_1" />)</Label>
                         <Input
                           id="v1"
                           type="number"
@@ -444,7 +676,7 @@ const ScientificCalculations = () => {
                         />
                       </div>
                       <div className="space-y-3">
-                        <Label htmlFor="c2" className="text-sm font-medium text-gray-300">Final Concentration (<InlineMath math="C_2" />)</Label>
+                        <Label htmlFor="c2" className="text-sm font-semibold text-gray-300">Final Concentration (<InlineMath math="C_2" />)</Label>
                         <Input
                           id="c2"
                           type="number"
@@ -455,7 +687,7 @@ const ScientificCalculations = () => {
                         />
                       </div>
                       <div className="space-y-3">
-                        <Label htmlFor="v2" className="text-sm font-medium text-gray-300">Final Volume (<InlineMath math="V_2" />)</Label>
+                        <Label htmlFor="v2" className="text-sm font-semibold text-gray-300">Final Volume (<InlineMath math="V_2" />)</Label>
                         <Input
                           id="v2"
                           type="number"
@@ -471,7 +703,7 @@ const ScientificCalculations = () => {
                       <div className="animate-in fade-in slide-in-from-top-4 duration-500">
                         <div className="p-6 rounded-2xl bg-cyan-500/5 border border-cyan-500/20 space-y-6">
                           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <h3 className="text-cyan-400 font-semibold flex items-center">
+                            <h3 className="text-cyan-400 font-bold flex items-center uppercase tracking-wider text-xs">
                               <Calculator className="w-4 h-4 mr-2" />
                               Result
                             </h3>
@@ -479,13 +711,13 @@ const ScientificCalculations = () => {
                                 <span className="text-2xl font-bold text-white tracking-tight">
                                     {dilutionResult.res.toFixed(4)}
                                 </span>
-                                <span className="ml-2 text-xs text-gray-500 uppercase tracking-widest font-medium">units</span>
+                                <span className="ml-2 text-[10px] text-gray-500 uppercase tracking-widest font-black">units</span>
                             </div>
                           </div>
                           
                           <div className="space-y-4 pt-6 border-t border-white/10">
                             <div>
-                              <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-bold mb-3">Mathematical Breakdown</p>
+                              <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-black mb-3 text-center">Mathematical Breakdown</p>
                               <div className="bg-black/40 p-4 rounded-xl border border-white/5 overflow-x-auto">
                                 <BlockMath math={dilutionResult.formula} />
                                 <div className="mt-4 pt-4 border-t border-white/5">
@@ -501,211 +733,22 @@ const ScientificCalculations = () => {
                 </Card>
               </TabsContent>
 
-              {/* pH Tab */}
-              <TabsContent value="ph" className="mt-0 outline-none">
-                <div className="space-y-6">
-                    <Card className="bg-white/5 border-white/10 text-white overflow-hidden shadow-2xl">
-                    <CardHeader className="border-b border-white/5 bg-white/[0.02]">
-                        <CardTitle className="text-xl font-semibold flex items-center">
-                        <Thermometer className="w-5 h-5 mr-2 text-cyan-400" />
-                        Quick Converter
-                        </Thermometer>
-                        <CardDescription className="text-gray-400">
-                        Convert between pH, pOH, and ion concentrations.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-6 space-y-8">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-3">
-                            <Label htmlFor="ph-type" className="text-sm font-medium text-gray-300">Input Type</Label>
-                            <select
-                            id="ph-type"
-                            value={phInput.type}
-                            onChange={(e) => setPhInput({ ...phInput, type: e.target.value })}
-                            className="w-full h-11 px-3 rounded-md bg-black/40 border border-white/10 text-white focus:border-cyan-500/50 outline-none appearance-none cursor-pointer"
-                            >
-                            <option value="ph">pH</option>
-                            <option value="h">[H⁺] (Molarity)</option>
-                            <option value="poh">pOH</option>
-                            <option value="oh">[OH⁻] (Molarity)</option>
-                            </select>
-                        </div>
-                        <div className="space-y-3">
-                            <Label htmlFor="ph-val" className="text-sm font-medium text-gray-300">Enter Value</Label>
-                            <Input
-                            id="ph-val"
-                            type="number"
-                            placeholder="e.g. 7.0"
-                            value={phInput.value}
-                            onChange={(e) => setPhInput({ ...phInput, value: e.target.value })}
-                            className="bg-black/40 border-white/10 focus:border-cyan-500/50 h-11"
-                            />
-                        </div>
-                        </div>
-
-                        {phResult && (
-                        <div className="animate-in fade-in slide-in-from-top-4 duration-500 space-y-6">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {[
-                                { label: 'pH', value: phResult.results.ph.toFixed(2), color: 'text-cyan-400' },
-                                { label: '[H⁺]', value: phResult.results.h.toExponential(2), color: 'text-white' },
-                                { label: 'pOH', value: phResult.results.poh.toFixed(2), color: 'text-cyan-400' },
-                                { label: '[OH⁻]', value: phResult.results.oh.toExponential(2), color: 'text-white' },
-                            ].map((item, idx) => (
-                                <div key={idx} className="p-4 rounded-xl bg-black/40 border border-white/10 text-center">
-                                <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2">{item.label}</p>
-                                <p className={`text-lg font-bold ${item.color}`}>{item.value}</p>
-                                </div>
-                            ))}
-                            </div>
-
-                            <div className="p-6 rounded-2xl bg-cyan-500/5 border border-cyan-500/20">
-                            <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-bold mb-4">Steps & Equations</p>
-                            <div className="bg-black/40 p-4 rounded-xl border border-white/5 space-y-4">
-                                {phResult.steps.map((step, i) => (
-                                <div key={i} className={i !== 0 ? 'pt-4 border-t border-white/5' : ''}>
-                                    <BlockMath math={step} />
-                                </div>
-                                ))}
-                            </div>
-                            </div>
-                        </div>
-                        )}
-                    </CardContent>
-                    </Card>
-
-                    {/* Equilibrium Solver */}
-                    <Card className="bg-white/5 border-white/10 text-white overflow-hidden shadow-2xl">
-                    <CardHeader className="border-b border-white/5 bg-white/[0.02]">
-                        <div className="flex justify-between items-center">
-                            <div>
-                                <CardTitle className="text-xl font-semibold flex items-center">
-                                    <FlaskConical className="w-5 h-5 mr-2 text-cyan-400" />
-                                    Equilibrium Solver
-                                </CardTitle>
-                                <CardDescription className="text-gray-400 mt-1">
-                                    Find pH from Concentration, or Molarity from pH.
-                                </CardDescription>
-                            </div>
-                            <div className="flex bg-black/40 rounded-lg p-1 border border-white/10 scale-90 md:scale-100">
-                                <button 
-                                    onClick={() => setCalcMode('find_ph')}
-                                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${calcMode === 'find_ph' ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/20' : 'text-gray-400 hover:text-white'}`}
-                                >
-                                    Find pH
-                                </button>
-                                <button 
-                                    onClick={() => setCalcMode('find_m')}
-                                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${calcMode === 'find_m' ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/20' : 'text-gray-400 hover:text-white'}`}
-                                >
-                                    Find Molarity
-                                </button>
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-6 space-y-8">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-3">
-                                <Label htmlFor="sub-select" className="text-sm font-medium text-gray-300">Select Substance</Label>
-                                <select
-                                    id="sub-select"
-                                    value={substanceId}
-                                    onChange={(e) => setSubstanceId(e.target.value)}
-                                    className="w-full h-11 px-3 rounded-md bg-black/40 border border-white/10 text-white focus:border-cyan-500/50 outline-none appearance-none cursor-pointer"
-                                >
-                                    <optgroup label="Acids & Bases" className="bg-gray-900">
-                                        {SUBSTANCES.filter(s => !s.type.includes('salt')).map(s => (
-                                            <option key={s.id} value={s.id}>{s.name}</option>
-                                        ))}
-                                    </optgroup>
-                                    <optgroup label="Salts" className="bg-gray-900">
-                                        {SUBSTANCES.filter(s => s.type.includes('salt')).map(s => (
-                                            <option key={s.id} value={s.id}>{s.name}</option>
-                                        ))}
-                                    </optgroup>
-                                </select>
-                            </div>
-                            <div className="space-y-3">
-                                <Label htmlFor="sub-input" className="text-sm font-medium text-gray-300">
-                                    {calcMode === 'find_ph' ? 'Concentration (M)' : 'Target pH Level'}
-                                </Label>
-                                <div className="relative">
-                                    <Input
-                                        id="sub-input"
-                                        type="number"
-                                        placeholder={calcMode === 'find_ph' ? 'e.g. 0.1' : 'e.g. 8.5'}
-                                        value={inputVal}
-                                        onChange={(e) => setInputVal(e.target.value)}
-                                        className="bg-black/40 border-white/10 focus:border-cyan-500/50 h-11 pr-10"
-                                    />
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-cyan-400/50">
-                                        {calcMode === 'find_ph' ? <FlaskConical className="w-4 h-4" /> : <Thermometer className="w-4 h-4" />}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {substanceResult && !substanceResult.error && (
-                            <div className="animate-in fade-in slide-in-from-top-4 duration-500 space-y-6">
-                                <div className="flex justify-between items-center bg-cyan-500/10 border border-cyan-500/20 p-6 rounded-2xl relative overflow-hidden group">
-                                     <div className="absolute right-0 top-0 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
-                                        <ArrowRightLeft className="w-32 h-32 -mr-8 -mt-8" />
-                                     </div>
-                                     <div>
-                                        <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-400 font-bold mb-1">Calculated {calcMode === 'find_ph' ? 'pH' : 'Molarity'}</p>
-                                        <p className="text-4xl font-bold text-white tracking-tighter">
-                                            {calcMode === 'find_ph' ? substanceResult.ph.toFixed(2) : substanceResult.m.toExponential(4)}
-                                            <span className="ml-2 text-xs font-normal text-gray-500 uppercase tracking-widest">{calcMode === 'find_ph' ? '' : 'M'}</span>
-                                        </p>
-                                     </div>
-                                     <div className="hidden md:grid grid-cols-2 gap-x-8 gap-y-2 text-[10px] uppercase tracking-widest font-bold text-gray-500 border-l border-white/10 pl-8">
-                                        <div>pH: <span className="text-white ml-2">{substanceResult.ph.toFixed(2)}</span></div>
-                                        <div>pOH: <span className="text-white ml-2">{substanceResult.poh.toFixed(2)}</span></div>
-                                        <div>[H⁺]: <span className="text-white ml-2">{substanceResult.h.toExponential(2)}</span></div>
-                                        <div>[OH⁻]: <span className="text-white ml-2">{substanceResult.oh.toExponential(2)}</span></div>
-                                     </div>
-                                </div>
-
-                                <div className="p-6 rounded-2xl bg-black/40 border border-white/10">
-                                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-bold mb-4">Chemical Calculation Breakdown</p>
-                                    <div className="space-y-4">
-                                        {substanceResult.steps.map((step, i) => (
-                                            <div key={i} className={i !== 0 ? 'pt-4 border-t border-white/5' : ''}>
-                                                <BlockMath math={step} />
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {substanceResult?.error && (
-                            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center">
-                                <Info className="w-4 h-4 mr-2" />
-                                {substanceResult.error}
-                            </div>
-                        )}
-                    </CardContent>
-                    </Card>
-                </div>
-              </TabsContent>
-
               {/* Molarity Tab */}
               <TabsContent value="molarity" className="mt-0 outline-none">
                 <Card className="bg-white/5 border-white/10 text-white overflow-hidden shadow-2xl">
                   <CardHeader className="border-b border-white/5 bg-white/[0.02]">
-                    <CardTitle className="text-xl font-semibold flex items-center">
+                    <CardTitle className="text-xl font-bold flex items-center">
                       <Calculator className="w-5 h-5 mr-2 text-cyan-400" />
-                      Molarity Calculator <span className="ml-2 text-sm font-normal text-gray-400 font-mono italic">(m = M × V × MW)</span>
+                      Generic Molarity Calculator
                     </CardTitle>
                     <CardDescription className="text-gray-400">
-                      Calculate Mass, Volume, Molarity, or Molar Mass.
+                      Standard Mass / Molarity / Volume / Molecular Weight solver.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="p-6 space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-3">
-                        <Label htmlFor="m-mass" className="text-sm font-medium text-gray-300">Mass (<InlineMath math="m" />) [g]</Label>
+                        <Label htmlFor="m-mass" className="text-sm font-semibold text-gray-300">Mass (<InlineMath math="m" />) [g]</Label>
                         <Input
                           id="m-mass"
                           type="number"
@@ -716,7 +759,7 @@ const ScientificCalculations = () => {
                         />
                       </div>
                       <div className="space-y-3">
-                        <Label htmlFor="m-mw" className="text-sm font-medium text-gray-300">Molar Mass (<InlineMath math="MW" />) [g/mol]</Label>
+                        <Label htmlFor="m-mw" className="text-sm font-semibold text-gray-300">Molar Mass (<InlineMath math="MW" />) [g/mol]</Label>
                         <Input
                           id="m-mw"
                           type="number"
@@ -727,7 +770,7 @@ const ScientificCalculations = () => {
                         />
                       </div>
                       <div className="space-y-3">
-                        <Label htmlFor="m-v" className="text-sm font-medium text-gray-300">Volume (<InlineMath math="V" />) [L]</Label>
+                        <Label htmlFor="m-v" className="text-sm font-semibold text-gray-300">Volume (<InlineMath math="V" />) [L]</Label>
                         <Input
                           id="m-v"
                           type="number"
@@ -738,7 +781,7 @@ const ScientificCalculations = () => {
                         />
                       </div>
                       <div className="space-y-3">
-                        <Label htmlFor="m-mol" className="text-sm font-medium text-gray-300">Molarity (<InlineMath math="M" />) [mol/L]</Label>
+                        <Label htmlFor="m-mol" className="text-sm font-semibold text-gray-300">Molarity (<InlineMath math="M" />) [mol/L]</Label>
                         <Input
                           id="m-mol"
                           type="number"
@@ -754,7 +797,7 @@ const ScientificCalculations = () => {
                       <div className="animate-in fade-in slide-in-from-top-4 duration-500">
                         <div className="p-6 rounded-2xl bg-cyan-500/5 border border-cyan-500/20 space-y-6">
                           <div className="flex justify-between items-center">
-                            <h3 className="text-cyan-400 font-semibold flex items-center">
+                            <h3 className="text-cyan-400 font-bold uppercase tracking-wider text-xs flex items-center">
                               <Calculator className="w-4 h-4 mr-2" />
                               Calculated Result
                             </h3>
@@ -766,7 +809,7 @@ const ScientificCalculations = () => {
                           <div className="space-y-4 pt-6 border-t border-white/10">
                             <div className="bg-black/40 p-4 rounded-xl border border-white/5 space-y-4">
                                 <BlockMath math={molarityResult.formula} />
-                                <div className="pt-4 border-t border-white/5">
+                                <div className="mt-4 pt-4 border-t border-white/5">
                                     <BlockMath math={molarityResult.calculation} />
                                 </div>
                             </div>
@@ -782,7 +825,7 @@ const ScientificCalculations = () => {
               <TabsContent value="ppb" className="mt-0 outline-none">
                 <Card className="bg-white/5 border-white/10 text-white overflow-hidden shadow-2xl">
                   <CardHeader className="border-b border-white/5 bg-white/[0.02]">
-                    <CardTitle className="text-xl font-semibold flex items-center">
+                    <CardTitle className="text-xl font-bold flex items-center">
                       <FlaskConical className="w-5 h-5 mr-2 text-cyan-400" />
                       Molarity to PPM/PPB
                     </CardTitle>
@@ -793,7 +836,7 @@ const ScientificCalculations = () => {
                   <CardContent className="p-6 space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-3">
-                        <Label htmlFor="ppb-m" className="text-sm font-medium text-gray-300">Molarity (M)</Label>
+                        <Label htmlFor="ppb-m" className="text-sm font-semibold text-gray-300">Molarity (M)</Label>
                         <Input
                           id="ppb-m"
                           type="number"
@@ -804,7 +847,7 @@ const ScientificCalculations = () => {
                         />
                       </div>
                       <div className="space-y-3">
-                        <Label htmlFor="ppb-mw" className="text-sm font-medium text-gray-300">Molar Mass (g/mol)</Label>
+                        <Label htmlFor="ppb-mw" className="text-sm font-semibold text-gray-300">Molar Mass (g/mol)</Label>
                         <Input
                           id="ppb-mw"
                           type="number"
@@ -832,10 +875,10 @@ const ScientificCalculations = () => {
                         </div>
 
                         <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
-                            <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-bold mb-4">Calculation Pathway</p>
+                            <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-bold mb-4 text-center">Calculation Pathway</p>
                             <div className="bg-black/40 p-4 rounded-xl border border-white/5 space-y-4 overflow-x-auto">
                                 <BlockMath math={ppbResult.formula} />
-                                <div className="pt-4 border-t border-white/5">
+                                <div className="mt-4 pt-4 border-t border-white/5">
                                     <BlockMath math={ppbResult.calculation} />
                                 </div>
                             </div>
@@ -847,7 +890,7 @@ const ScientificCalculations = () => {
               </TabsContent>
             </Tabs>
 
-            {/* Laboratory Best Practices */}
+            {/* Laboratory Guidance */}
             <div className="rounded-3xl border border-white/10 bg-white/5 p-8 relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
                 <Beaker className="w-32 h-32 text-cyan-400" />
@@ -858,15 +901,15 @@ const ScientificCalculations = () => {
               </h2>
               <div className="grid md:grid-cols-3 gap-8 text-sm text-gray-400 relative z-10">
                 <div className="space-y-3">
-                  <h3 className="text-white font-semibold">Analytical Precision</h3>
+                  <h3 className="text-white font-bold uppercase tracking-widest text-[10px]">Analytical Precision</h3>
                   <p className="leading-relaxed">Always use analytical balances for mass and volumetric glassware for volume. Calibrate pH meters daily with standard buffers (pH 4, 7, and 10).</p>
                 </div>
                 <div className="space-y-3">
-                  <h3 className="text-white font-semibold">Chemical Safety</h3>
+                  <h3 className="text-white font-bold uppercase tracking-widest text-[10px]">Chemical Safety</h3>
                   <p className="leading-relaxed">Add acids to water to prevent exothermic splashing. Always consult the SDS (Safety Data Sheet) before handling new reagents.</p>
                 </div>
                 <div className="space-y-3">
-                  <h3 className="text-white font-semibold">Unit Consistency</h3>
+                  <h3 className="text-white font-bold uppercase tracking-widest text-[10px]">Unit Consistency</h3>
                   <p className="leading-relaxed">Most calculators expect standard SI units: Molarity (M), Liters (L), and Grams (g). Double-check conversions if using mL or mg.</p>
                 </div>
               </div>
