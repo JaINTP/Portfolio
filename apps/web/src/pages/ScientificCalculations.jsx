@@ -1,919 +1,321 @@
 import React, { useState, useEffect } from 'react';
-import { Calculator, Beaker, Droplets, Thermometer, FlaskConical, Info, ArrowRightLeft, Scale } from 'lucide-react';
+import { FlaskConical, Scale, Settings2, RotateCcw } from 'lucide-react';
 import ResponsiveSection from '../components/layout/ResponsiveSection';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card';
+import { Card, CardContent } from '../components/ui/card';
 import 'katex/dist/katex.min.css';
-import { InlineMath, BlockMath } from 'react-katex';
+import { BlockMath } from 'react-katex';
 
 const KW = 1e-14;
 
 const SUBSTANCES = [
-  { id: 'custom', name: 'Custom (Strong)', type: 'strong_acid', ka: null, mw: 0 },
   { id: 'hcl', name: 'Hydrochloric Acid (HCl)', type: 'strong_acid', ka: null, mw: 36.46 },
   { id: 'hno3', name: 'Nitric Acid (HNO₃)', type: 'strong_acid', ka: null, mw: 63.01 },
-  { id: 'h2so4', name: 'Sulfuric Acid (H₂SO₄)', type: 'strong_acid', ka: null, diprotic: true, mw: 98.08 },
+  { id: 'h2so4', name: 'Sulfuric Acid (H₂SO₄)', type: 'sulfuric_acid', ka: null, mw: 98.08 },
   { id: 'naoh', name: 'Sodium Hydroxide (NaOH)', type: 'strong_base', kb: null, mw: 39.997 },
   { id: 'koh', name: 'Potassium Hydroxide (KOH)', type: 'strong_base', kb: null, mw: 56.11 },
   { id: 'acetic', name: 'Acetic Acid (CH₃COOH)', type: 'weak_acid', ka: 1.8e-5, pka: 4.74, mw: 60.05 },
   { id: 'formic', name: 'Formic Acid (HCOOH)', type: 'weak_acid', ka: 1.8e-4, pka: 3.74, mw: 46.03 },
   { id: 'nh3', name: 'Ammonia (NH₃)', type: 'weak_base', kb: 1.8e-5, pkb: 4.74, mw: 17.03 },
   { id: 'pyridine', name: 'Pyridine (C₅H₅N)', type: 'weak_base', kb: 1.7e-9, pkb: 8.77, mw: 79.10 },
-  // Salts
-  { id: 'nacl', name: 'Sodium Chloride (NaCl)', type: 'neutral_salt', mw: 58.44 },
-  { id: 'na_acetate', name: 'Sodium Acetate (NaCH₃COO)', type: 'salt_basic', ka: 1.8e-5, conjugate: 'CH₃COO⁻', mw: 82.03 },
+  { id: 'na_acetate', name: 'Sodium Acetate (Anhydrous)', type: 'salt_basic', ka: 1.8e-5, conjugate: 'CH₃COO⁻', mw: 82.03 },
+  { id: 'na_acetate_tri', name: 'Sodium Acetate (Trihydrate)', type: 'salt_basic', ka: 1.8e-5, conjugate: 'CH₃COO⁻', mw: 136.08 },
   { id: 'nh4cl', name: 'Ammonium Chloride (NH₄Cl)', type: 'salt_acidic', kb: 1.8e-5, conjugate: 'NH₄⁺', mw: 53.49 },
-  { id: 'nacn', name: 'Sodium Cyanide (NaCN)', type: 'salt_basic', ka: 6.2e-10, conjugate: 'CN⁻', mw: 49.01 },
-  { id: 'nh4no3', name: 'Ammonium Nitrate (NH₄NO₃)', type: 'salt_acidic', kb: 1.8e-5, conjugate: 'NH₄⁺', mw: 80.04 },
+  { id: 'custom_acid', name: 'Custom Weak Acid', type: 'weak_acid', ka: 1e-5, pka: 5.0, mw: 100, isCustom: true },
+  { id: 'custom_base', name: 'Custom Weak Base', type: 'weak_base', kb: 1e-5, pkb: 5.0, mw: 100, isCustom: true },
 ];
 
 const ScientificCalculations = () => {
   const [isVisible, setIsVisible] = useState(false);
+  useEffect(() => setIsVisible(true), []);
 
-  useEffect(() => {
-    setIsVisible(true);
-  }, []);
-
-  // Dilution State
+  const [substanceId, setSubstanceId] = useState('acetic');
+  const [calcMode, setCalcMode] = useState('find_ph'); 
+  const [inputVal, setInputVal] = useState(''); 
+  const [targetVolume, setTargetVolume] = useState('1'); 
+  const [useDilutionSource, setUseDilutionSource] = useState(false);
+  const [stockVal, setStockVal] = useState({ c: '', v: '', totalV: '' });
+  const [customPka, setCustomPka] = useState('5.0');
+  const [customMw, setCustomMw] = useState('100');
+  
+  const [substanceResult, setSubstanceResult] = useState(null);
   const [dilution, setDilution] = useState({ c1: '', v1: '', c2: '', v2: '' });
   const [dilutionResult, setDilutionResult] = useState(null);
 
-  // pH State (Direct Converter)
-  const [phInput, setPhInput] = useState({ value: '', type: 'ph' }); 
-  const [phResult, setPhResult] = useState(null);
-  
-  // Substance-based pH State
-  const [substanceId, setSubstanceId] = useState('na_acetate');
-  const [calcMode, setCalcMode] = useState('find_m'); // Default to finding Molarity since user asked for it
-  const [inputVal, setInputVal] = useState(''); 
-  const [targetVolume, setTargetVolume] = useState('1'); // L
-  const [substanceResult, setSubstanceResult] = useState(null);
+  const solveQuadratic = (a, b) => {
+    if (b === 0) return 0;
+    return (-a + Math.sqrt(Math.pow(a, 2) + 4 * b)) / 2;
+  };
 
-  // Molarity State
-  const [molarity, setMolarity] = useState({ mass: '', molarMass: '', volume: '', molarity: '' });
-  const [molarityResult, setMolarityResult] = useState(null);
+  const handleReset = () => {
+    setInputVal('');
+    setStockVal({ c: '', v: '', totalV: '' });
+    setSubstanceResult(null);
+  };
 
-  // PPB Conversion State
-  const [ppbConv, setPpbConv] = useState({ molarity: '', molarMass: '' });
-  const [ppbResult, setPpbResult] = useState(null);
-
-  // Dilution Logic
   useEffect(() => {
-    const { c1, v1, c2, v2 } = dilution;
-    const vals = [c1, v1, c2, v2].filter(v => v !== '');
-    if (vals.length === 3) {
-      const nc1 = parseFloat(c1);
-      const nv1 = parseFloat(v1);
-      const nc2 = parseFloat(c2);
-      const nv2 = parseFloat(v2);
-
-      let res = 0;
-      let formula = '';
-      let calculation = '';
-
-      if (c1 === '') {
-        res = (nc2 * nv2) / nv1;
-        formula = 'C_1 = \\frac{C_2 \\times V_2}{V_1}';
-        calculation = `C_1 = \\frac{${nc2} \\times ${nv2}}{${nv1}} = ${res.toFixed(4)}`;
-      } else if (v1 === '') {
-        res = (nc2 * nv2) / nc1;
-        formula = 'V_1 = \\frac{C_2 \\times V_2}{C_1}';
-        calculation = `V_1 = \\frac{${nc2} \\times ${nv2}}{${nc1}} = ${res.toFixed(4)}`;
-      } else if (c2 === '') {
-        res = (nc1 * nv1) / nv2;
-        formula = 'C_2 = \\frac{C_1 \\times V_1}{V_2}';
-        calculation = `C_2 = \\frac{${nc1} \\times ${nv1}}{${nv2}} = ${res.toFixed(4)}`;
-      } else if (v2 === '') {
-        res = (nc1 * nv1) / nc2;
-        formula = 'V_2 = \\frac{C_1 \\times V_1}{C_2}';
-        calculation = `V_2 = \\frac{${nc1} \\times ${nv1}}{${nc2}} = ${res.toFixed(4)}`;
-      }
-      setDilutionResult({ res, formula, calculation });
+    let c = 0;
+    if (useDilutionSource && calcMode === 'find_ph') {
+        const { c: sc, v: sv, totalV: stv } = stockVal;
+        if (sc && sv && stv) c = (parseFloat(sc) * parseFloat(sv)) / parseFloat(stv);
+        else { setSubstanceResult(null); return; }
     } else {
-      setDilutionResult(null);
-    }
-  }, [dilution]);
-
-  // pH Logic (Direct Converter)
-  useEffect(() => {
-    const val = parseFloat(phInput.value);
-    if (isNaN(val)) {
-      setPhResult(null);
-      return;
+        c = parseFloat(inputVal);
     }
 
-    let results = {};
-    let steps = [];
+    const subBase = SUBSTANCES.find(s => s.id === substanceId);
+    if (!subBase) return;
 
-    if (phInput.type === 'ph') {
-      const h = Math.pow(10, -val);
-      const poh = 14 - val;
-      const oh = Math.pow(10, -poh);
-      results = { ph: val, h, poh, oh };
-      steps = [
-        `[H^+] = 10^{-pH} = 10^{-${val}} = ${h.toExponential(4)} \\text{ M}`,
-        `pOH = 14 - pH = 14 - ${val} = ${poh.toFixed(2)}`,
-        `[OH^-] = 10^{-pOH} = 10^{-${poh.toFixed(2)}} = ${oh.toExponential(4)} \\text{ M}`
-      ];
-    } else if (phInput.type === 'h') {
-      const ph = -Math.log10(val);
-      const poh = 14 - ph;
-      const oh = Math.pow(10, -poh);
-      results = { ph, h: val, poh, oh };
-      steps = [
-        `pH = -\\log_{10}([H^+]) = -\\log_{10}(${val}) = ${ph.toFixed(2)}`,
-        `pOH = 14 - pH = 14 - ${ph.toFixed(2)} = ${poh.toFixed(2)}`,
-        `[OH^-] = 10^{-pOH} = 10^{-${poh.toFixed(2)}} = ${oh.toExponential(4)} \\text{ M}`
-      ];
-    } else if (phInput.type === 'poh') {
-        const ph = 14 - val;
-        const h = Math.pow(10, -ph);
-        const oh = Math.pow(10, -val);
-        results = { ph, h, poh: val, oh };
-        steps = [
-            `pH = 14 - pOH = 14 - ${val} = ${ph.toFixed(2)}`,
-            `[H^+] = 10^{-pH} = 10^{-${ph.toFixed(2)}} = ${h.toExponential(4)} \\text{ M}`,
-            `[OH^-] = 10^{-pOH} = 10^{-${val}} = ${oh.toExponential(4)} \\text{ M}`
-        ];
-    } else if (phInput.type === 'oh') {
-        const poh = -Math.log10(val);
-        const ph = 14 - poh;
-        const h = Math.pow(10, -ph);
-        results = { ph, h, poh, oh: val };
-        steps = [
-            `pOH = -\\log_{10}([OH^-]) = -\\log_{10}(${val}) = ${poh.toFixed(2)}`,
-            `pH = 14 - pOH = 14 - ${poh.toFixed(2)} = ${ph.toFixed(2)}`,
-            `[H^+] = 10^{-pH} = 10^{-${ph.toFixed(2)}} = ${h.toExponential(4)} \\text{ M}`
-        ];
+    const sub = { ...subBase };
+    if (sub.isCustom) {
+        const pka = parseFloat(customPka);
+        sub.ka = Math.pow(10, -pka);
+        sub.kb = KW / sub.ka;
+        sub.mw = parseFloat(customMw);
     }
 
-    setPhResult({ results, steps });
-  }, [phInput]);
-
-  // Substance-based Logic (Forward & Reverse + Lab Prep)
-  useEffect(() => {
-    const val = parseFloat(inputVal);
-    const sub = SUBSTANCES.find(s => s.id === substanceId);
-    if (isNaN(val) || !sub) {
+    if ((isNaN(c) && calcMode === 'find_ph') || (isNaN(parseFloat(inputVal)) && calcMode === 'find_m')) {
         setSubstanceResult(null);
         return;
     }
 
-    let ph, poh, h, oh, m;
-    let steps = [];
-    let error = null;
+    let ph, poh, h, oh, m, steps = [], error = null;
 
     if (calcMode === 'find_ph') {
-        const conc = val;
+        m = c;
         if (sub.type === 'strong_acid') {
-            h = sub.diprotic ? conc * 2 : conc;
-            ph = -Math.log10(h);
-            poh = 14 - ph;
-            oh = Math.pow(10, -poh);
-            steps = [
-                `\\text{Strong Acid Dissociation: } [H^+] = ${sub.diprotic ? '2 \\times ' : ''} C_{acid} = ${h.toExponential(4)} \\text{ M}`,
-                `pH = -\\log_{10}([H^+]) = -\\log_{10}(${h.toExponential(4)}) = ${ph.toFixed(2)}`,
-                `pOH = 14 - pH = ${poh.toFixed(2)}`
-            ];
+            h = c; ph = -Math.log10(h);
+            steps = [`[H^+] = C_{acid} = ${h.toExponential(4)} \\text{ M}`, `pH = -\\log_{10}(${h.toExponential(4)}) = ${ph.toFixed(2)}`];
+        } else if (sub.type === 'sulfuric_acid') {
+            const ka2 = 0.012;
+            const x = solveQuadratic(c + ka2, ka2 * c);
+            h = c + x; ph = -Math.log10(h);
+            steps = [`H_2SO_4 \\text{ dissociation (including } K_{a2}=0.012\\text{)}`, `[H^+] = C + x = ${h.toExponential(4)} \\text{ M}`, `pH = ${ph.toFixed(2)}`];
         } else if (sub.type === 'strong_base') {
-            oh = conc;
-            poh = -Math.log10(oh);
-            ph = 14 - poh;
-            h = Math.pow(10, -ph);
-            steps = [
-                `\\text{Strong Base Dissociation: } [OH^-] = C_{base} = ${oh.toExponential(4)} \\text{ M}`,
-                `pOH = -\\log_{10}([OH^-]) = -\\log_{10}(${oh.toExponential(4)}) = ${poh.toFixed(2)}`,
-                `pH = 14 - pOH = ${ph.toFixed(2)}`
-            ];
+            oh = c; poh = -Math.log10(oh); ph = 14 - poh;
+            steps = [`[OH^-] = C_{base} = ${oh.toExponential(4)} \\text{ M}`, `pH = 14 - pOH = ${ph.toFixed(2)}`];
         } else if (sub.type === 'weak_acid') {
-            h = Math.sqrt(sub.ka * conc);
-            ph = -Math.log10(h);
-            poh = 14 - ph;
-            oh = Math.pow(10, -poh);
-            steps = [
-                `\\text{Weak Acid Equilibrium: } [H^+] \\approx \\sqrt{K_a \\times C}`,
-                `[H^+] = \\sqrt{${sub.ka.toExponential(2)} \\times ${conc}} = ${h.toExponential(4)} \\text{ M}`,
-                `pH = -\\log_{10}(${h.toExponential(4)}) = ${ph.toFixed(2)}`,
-                `K_a = ${sub.ka.toExponential(2)} \\text{ (p}K_a = ${sub.pka}\\text{)}`
-            ];
+            h = solveQuadratic(sub.ka, sub.ka * c); ph = -Math.log10(h);
+            steps = [`\\text{Weak Acid Equilibrium (Quadratic)}`, `[H^+] = ${h.toExponential(4)} \\text{ M}`, `pH = ${ph.toFixed(2)}`];
         } else if (sub.type === 'weak_base') {
-            oh = Math.sqrt(sub.kb * conc);
-            poh = -Math.log10(oh);
-            ph = 14 - poh;
-            h = Math.pow(10, -ph);
-            steps = [
-                `\\text{Weak Base Equilibrium: } [OH^-] \\approx \\sqrt{K_b \\times C}`,
-                `[OH^-] = \\sqrt{${sub.kb.toExponential(2)} \\times ${conc}} = ${oh.toExponential(4)} \\text{ M}`,
-                `pOH = -\\log_{10}(${oh.toExponential(4)}) = ${poh.toFixed(2)}`,
-                `pH = 14 - pOH = ${ph.toFixed(2)}`,
-                `K_b = ${sub.kb.toExponential(2)} \\text{ (p}K_b = ${sub.pkb}\\text{)}`
-            ];
+            const kbValue = sub.kb || (KW / sub.ka);
+            oh = solveQuadratic(kbValue, kbValue * c); poh = -Math.log10(oh); ph = 14 - poh;
+            steps = [`\\text{Weak Base Equilibrium (Quadratic)}`, `[OH^-] = ${oh.toExponential(4)} \\text{ M}`, `pH = ${ph.toFixed(2)}`];
         } else if (sub.type === 'salt_basic') {
-            const kh = KW / sub.ka;
-            oh = Math.sqrt(kh * conc);
-            poh = -Math.log10(oh);
-            ph = 14 - poh;
-            h = Math.pow(10, -ph);
-            steps = [
-                `\\text{Salt Hydrolysis (Anion): } ${sub.conjugate} + H_2O \\rightleftharpoons HA + OH^-`,
-                `K_h = \\frac{K_w}{K_a} = \\frac{10^{-14}}{${sub.ka.toExponential(2)}} = ${kh.toExponential(2)}`,
-                `[OH^-] = \\sqrt{K_h \\times C_{salt}} = \\sqrt{${kh.toExponential(2)} \\times ${conc}} = ${oh.toExponential(4)} \\text{ M}`,
-                `pOH = -\\log_{10}(${oh.toExponential(4)}) = ${poh.toFixed(2)}`,
-                `pH = 14 - pOH = ${ph.toFixed(2)}`
-            ];
+            const kh = KW / sub.ka; oh = solveQuadratic(kh, kh * c); poh = -Math.log10(oh); ph = 14 - poh;
+            steps = [`\\text{Salt Hydrolysis: } K_h = K_w / K_a = ${kh.toExponential(2)}`, `[OH^-] = ${oh.toExponential(4)} \\text{ M}`, `pH = ${ph.toFixed(2)}`];
         } else if (sub.type === 'salt_acidic') {
-            const kh = KW / sub.kb;
-            h = Math.sqrt(kh * conc);
-            ph = -Math.log10(h);
-            poh = 14 - ph;
-            oh = Math.pow(10, -poh);
-            steps = [
-                `\\text{Salt Hydrolysis (Cation): } ${sub.conjugate} + H_2O \\rightleftharpoons B + H_3O^+`,
-                `K_h = \\frac{K_w}{K_b} = \\frac{10^{-14}}{${sub.kb.toExponential(2)}} = ${kh.toExponential(2)}`,
-                `[H_3O^+] = \\sqrt{K_h \\times C_{salt}} = \\sqrt{${kh.toExponential(2)} \\times ${conc}} = ${h.toExponential(4)} \\text{ M}`,
-                `pH = -\\log_{10}(${h.toExponential(4)}) = ${ph.toFixed(2)}`,
-                `pOH = 14 - pH = ${poh.toFixed(2)}`
-            ];
-        } else if (sub.type === 'neutral_salt') {
-            ph = 7.00; poh = 7.00; h = 1e-7; oh = 1e-7;
-            steps = [`\\text{Neutral Salt: No hydrolysis. pH = 7.00}`];
+            const khValue = KW / (sub.kb || (KW / sub.ka)); h = solveQuadratic(khValue, khValue * c); ph = -Math.log10(h);
+            steps = [`\\text{Salt Hydrolysis: } K_h = K_w / K_b = ${khValue.toExponential(2)}`, `[H^+] = ${h.toExponential(4)} \\text{ M}`, `pH = ${ph.toFixed(2)}`];
         }
-        m = val;
+        poh = 14 - ph; h = Math.pow(10, -ph); oh = Math.pow(10, -poh);
     } else {
-        // Find Molarity from pH
-        ph = val;
-        poh = 14 - ph;
-        h = Math.pow(10, -ph);
-        oh = Math.pow(10, -poh);
-
-        if (sub.type === 'strong_acid') {
-            if (ph >= 7) { error = "Target pH must be acidic (< 7) for an acid."; }
-            else {
-                m = sub.diprotic ? h / 2 : h;
-                steps = [
-                    `\\text{Target } [H^+] = 10^{-pH} = 10^{-${ph}} = ${h.toExponential(4)} \\text{ M}`,
-                    `\\text{Required Molarity } (M) = ${sub.diprotic ? '[H^+]/2' : '[H^+]'} = ${m.toExponential(4)} \\text{ M}`
-                ];
-            }
-        } else if (sub.type === 'strong_base') {
-            if (ph <= 7) { error = "Target pH must be basic (> 7) for a base."; }
-            else {
-                m = oh;
-                steps = [
-                    `\\text{Target } [OH^-] = 10^{-pOH} = 10^{-${poh.toFixed(2)}} = ${oh.toExponential(4)} \\text{ M}`,
-                    `\\text{Required Molarity } (M) = [OH^-] = ${m.toExponential(4)} \\text{ M}`
-                ];
-            }
-        } else if (sub.type === 'weak_acid') {
-            if (ph >= 7) { error = "Weak acids cannot typically reach basic pH ranges alone."; }
-            else {
-                m = Math.pow(h, 2) / sub.ka;
-                steps = [
-                    `\\text{Equilibrium: } K_a \\approx \\frac{[H^+]^2}{C}`,
-                    `C = \\frac{[H^+]^2}{K_a} = \\frac{(${h.toExponential(4)})^2}{${sub.ka.toExponential(2)}} = ${m.toExponential(4)} \\text{ M}`,
-                    `K_a = ${sub.ka.toExponential(2)}`
-                ];
-            }
-        } else if (sub.type === 'weak_base') {
-            if (ph <= 7) { error = "Weak bases cannot typically reach acidic pH ranges alone."; }
-            else {
-                m = Math.pow(oh, 2) / sub.kb;
-                steps = [
-                    `\\text{Equilibrium: } K_b \\approx \\frac{[OH^-]^2}{C}`,
-                    `C = \\frac{[OH^-]^2}{K_b} = \\frac{(${oh.toExponential(4)})^2}{${sub.kb.toExponential(2)}} = ${m.toExponential(4)} \\text{ M}`,
-                    `K_b = ${sub.kb.toExponential(2)}`
-                ];
-            }
-        } else if (sub.type === 'salt_basic') {
-            if (ph <= 7) { error = "Basic salts produce pH > 7."; }
-            else {
-                const kh = KW / sub.ka;
-                m = Math.pow(oh, 2) / kh;
-                steps = [
-                    `\\text{Hydrolysis: } K_h = \\frac{K_w}{K_a} = ${kh.toExponential(2)}`,
-                    `C = \\frac{[OH^-]^2}{K_h} = \\frac{(${oh.toExponential(4)})^2}{${kh.toExponential(2)}} = ${m.toExponential(4)} \\text{ M}`
-                ];
-            }
-        } else if (sub.type === 'salt_acidic') {
-            if (ph >= 7) { error = "Acidic salts produce pH < 7."; }
-            else {
-                const kh = KW / sub.kb;
-                m = Math.pow(h, 2) / kh;
-                steps = [
-                    `\\text{Hydrolysis: } K_h = \\frac{K_w}{K_b} = ${kh.toExponential(2)}`,
-                    `C = \\frac{[H^+]^2}{K_h} = \\frac{(${h.toExponential(4)})^2}{${kh.toExponential(2)}} = ${m.toExponential(4)} \\text{ M}`
-                ];
-            }
-        } else if (sub.type === 'neutral_salt') {
-            error = "Neutral salts cannot be used to 'target' a pH other than 7.00.";
-        }
+        ph = parseFloat(inputVal); poh = 14 - ph; h = Math.pow(10, -ph); oh = Math.pow(10, -poh);
+        if (sub.type === 'strong_acid') m = h;
+        else if (sub.type === 'weak_acid') m = (Math.pow(h, 2) / sub.ka) + h;
+        else if (sub.type === 'weak_base') { const kbValue = sub.kb || (KW / sub.ka); m = (Math.pow(oh, 2) / kbValue) + oh; }
+        else if (sub.type === 'strong_base') m = oh;
+        else if (sub.type === 'salt_basic') { const kh = KW / sub.ka; m = (Math.pow(oh, 2) / kh) + oh; }
+        else if (sub.type === 'salt_acidic') { const khValue = KW / (sub.kb || (KW / sub.ka)); m = (Math.pow(h, 2) / khValue) + h; }
+        else if (sub.type === 'sulfuric_acid') { const ka2 = 0.012; m = (Math.pow(h, 2) + ka2 * h) / (2 * ka2 + h); }
+        steps = [`\\text{Targeting pH } ${ph} \\implies [H^+] = ${h.toExponential(2)}`, `\\text{Calculated Molarity } = ${m?.toExponential(4)} \\text{ M}`];
     }
 
-    // Lab Prep Logic (Calculate Mass from determined Molarity)
     let labPrep = null;
     const vol = parseFloat(targetVolume);
     if (m > 0 && vol > 0 && sub.mw > 0) {
-        const mass = m * vol * sub.mw;
-        labPrep = {
-            mass,
-            mw: sub.mw,
-            vol,
-            m
-        };
+        labPrep = { mass: m * vol * sub.mw, mw: sub.mw, vol, m };
     }
 
     setSubstanceResult({ ph, poh, h, oh, m, steps, error, labPrep });
-  }, [substanceId, calcMode, inputVal, targetVolume]);
+  }, [substanceId, calcMode, inputVal, targetVolume, useDilutionSource, stockVal, customPka, customMw]);
 
-  // Molarity Logic (Generic Tab)
   useEffect(() => {
-    const { mass, molarMass, volume, molarity: mol } = molarity;
-    const vals = [mass, molarMass, volume, mol].filter(v => v !== '');
+    const { c1, v1, c2, v2 } = dilution;
+    const vals = [c1, v1, c2, v2].filter(v => v !== '');
     if (vals.length === 3) {
-      const nMass = parseFloat(mass);
-      const nMW = parseFloat(molarMass);
-      const nV = parseFloat(volume);
-      const nMol = parseFloat(mol);
-
-      let res = 0;
-      let formula = '';
-      let calculation = '';
-
-      if (mass === '') {
-        res = nMol * nV * nMW;
-        formula = 'm = M \\times V \\times MW';
-        calculation = `m = ${nMol} \\times ${nV} \\times ${nMW} = ${res.toFixed(4)} \\text{ g}`;
-      } else if (molarMass === '') {
-        res = nMass / (nMol * nV);
-        formula = 'MW = \\frac{m}{M \\times V}';
-        calculation = `MW = \\frac{${nMass}}{${nMol} \\times ${nV}} = ${res.toFixed(4)} \\text{ g/mol}`;
-      } else if (volume === '') {
-        res = nMass / (nMol * nMW);
-        formula = 'V = \\frac{m}{M \\times MW}';
-        calculation = `V = \\frac{${nMass}}{${nMol} \\times ${nMW}} = ${res.toFixed(4)} \\text{ L}`;
-      } else if (mol === '') {
-        res = nMass / (nMW * nV);
-        formula = 'M = \\frac{m}{MW \\times V}';
-        calculation = `M = \\frac{${nMass}}{${nMW} \\times ${nV}} = ${res.toFixed(4)} \\text{ M}`;
-      }
-      setMolarityResult({ res, formula, calculation });
-    } else {
-      setMolarityResult(null);
-    }
-  }, [molarity]);
-
-  // PPB Logic
-  useEffect(() => {
-    const { molarity: m, molarMass: mw } = ppbConv;
-    if (m && mw) {
-      const nM = parseFloat(m);
-      const nMW = parseFloat(mw);
-      const resPPM = nM * nMW * 1000;
-      const resPPB = resPPM * 1000;
-      
-      const formula = 'C_{ppb} = M \\times MW \\times 10^6';
-      const calculation = `C_{ppb} = ${nM} \\times ${nMW} \\times 10^6 = ${resPPB.toExponential(4)} \\text{ ppb}`;
-      
-      setPpbResult({ ppm: resPPM, ppb: resPPB, formula, calculation });
-    } else {
-      setPpbResult(null);
-    }
-  }, [ppbConv]);
+      const n = [parseFloat(c1), parseFloat(v1), parseFloat(c2), parseFloat(v2)];
+      let res = 0, calculation = '';
+      if (c1 === '') { res = (n[2] * n[3]) / n[1]; calculation = `C_1 = (C_2 V_2) / V_1 = ${res.toFixed(4)}`; }
+      else if (v1 === '') { res = (n[2] * n[3]) / n[0]; calculation = `V_1 = (C_2 V_2) / C_1 = ${res.toFixed(4)}`; }
+      else if (c2 === '') { res = (n[0] * n[1]) / n[3]; calculation = `C_2 = (C_1 V_1) / V_2 = ${res.toFixed(4)}`; }
+      else if (v2 === '') { res = (n[0] * n[1]) / n[2]; calculation = `V_2 = (C_1 V_1) / C_2 = ${res.toFixed(4)}`; }
+      setDilutionResult({ res, calculation });
+    } else setDilutionResult(null);
+  }, [dilution]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black via-gray-950 to-black text-white font-sans">
-      <ResponsiveSection className="pt-32 pb-20">
+    <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-cyan-500/30">
+      <ResponsiveSection className="pt-28 pb-20">
         <div className={`transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          <div className="max-w-4xl mx-auto space-y-8">
-            {/* Header */}
-            <div className="space-y-4">
-              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-sm font-medium">
-                <Beaker className="w-4 h-4" />
-                <span>Laboratory Toolbox</span>
-              </div>
-              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white to-gray-500 bg-clip-text text-transparent tracking-tight">
-                Scientific Calculations
-              </h1>
-              <p className="text-gray-400 text-lg max-w-2xl leading-relaxed">
-                Automated chemical calculations. Select a substance, define your target, and get the exact weighing requirements and full mathematical breakdown instantly.
-              </p>
+          <div className="max-w-5xl mx-auto space-y-10">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-10">
+                <div className="space-y-4">
+                    <div className="inline-flex items-center space-x-2 px-2.5 py-1 rounded bg-white/5 border border-white/10 text-gray-400 text-[10px] font-bold tracking-widest uppercase">
+                        <Settings2 className="w-3 h-3" />
+                        <span>v2.0 Analytical Solver</span>
+                    </div>
+                    <h1 className="text-5xl md:text-7xl font-black tracking-tighter">Lab Calc<span className="text-cyan-500">.</span></h1>
+                    <p className="text-gray-500 text-lg max-w-xl font-medium">Exact equilibrium models for acids, bases, and salts. Integrated weighing & dilution workflows.</p>
+                </div>
+                <button onClick={handleReset} className="flex items-center space-x-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white transition-colors bg-white/5 px-4 py-2 rounded-lg border border-white/10">
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Clear All</span>
+                </button>
             </div>
 
             <Tabs defaultValue="ph" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 bg-white/5 border border-white/10 p-1 mb-8">
-                <TabsTrigger value="ph" className="data-[state=active]:bg-cyan-500 data-[state=active]:text-black transition-all">
-                    <Thermometer className="w-4 h-4 mr-2 hidden sm:inline" />
-                    pH & Preparation
-                </TabsTrigger>
-                <TabsTrigger value="dilution" className="data-[state=active]:bg-cyan-500 data-[state=active]:text-black transition-all">
-                    <Droplets className="w-4 h-4 mr-2 hidden sm:inline" />
-                    Dilution
-                </TabsTrigger>
-                <TabsTrigger value="molarity" className="data-[state=active]:bg-cyan-500 data-[state=active]:text-black transition-all">
-                    <Calculator className="w-4 h-4 mr-2 hidden sm:inline" />
-                    Generic Molarity
-                </TabsTrigger>
-                <TabsTrigger value="ppb" className="data-[state=active]:bg-cyan-500 data-[state=active]:text-black transition-all">
-                    <FlaskConical className="w-4 h-4 mr-2 hidden sm:inline" />
-                    M to PPB
-                </TabsTrigger>
+              <TabsList className="flex space-x-8 bg-transparent border-b border-white/5 w-full justify-start rounded-none h-auto p-0 mb-10">
+                {['ph', 'dilution'].map(t => (
+                    <TabsTrigger key={t} value={t} className="rounded-none border-b-2 border-transparent data-[state=active]:border-cyan-500 data-[state=active]:bg-transparent data-[state=active]:text-cyan-400 bg-transparent text-gray-500 font-bold text-xs uppercase tracking-widest pb-4 px-0 transition-all">
+                        {t === 'ph' ? 'Preparation & pH' : 'C1V1 Dilution'}
+                    </TabsTrigger>
+                ))}
               </TabsList>
 
-              {/* pH & Preparation Tab */}
-              <TabsContent value="ph" className="mt-0 outline-none space-y-6">
-                    {/* Equilibrium & Weighing Solver */}
-                    <Card className="bg-white/5 border-white/10 text-white overflow-hidden shadow-2xl ring-1 ring-white/5">
-                    <CardHeader className="border-b border-white/5 bg-white/[0.02]">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div>
-                                <CardTitle className="text-xl font-bold flex items-center text-cyan-400">
-                                    <FlaskConical className="w-5 h-5 mr-2" />
-                                    Substance Weighing & pH Solver
-                                </CardTitle>
-                                <CardDescription className="text-gray-400 mt-1">
-                                    Define your substance and target volume to get the final weighing requirement.
-                                </CardDescription>
-                            </div>
-                            <div className="flex bg-black/40 rounded-lg p-1 border border-white/10 self-start md:self-auto">
-                                <button 
-                                    onClick={() => setCalcMode('find_ph')}
-                                    className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${calcMode === 'find_ph' ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/20' : 'text-gray-400 hover:text-white'}`}
-                                >
-                                    FIND pH
-                                </button>
-                                <button 
-                                    onClick={() => setCalcMode('find_m')}
-                                    className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${calcMode === 'find_m' ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/20' : 'text-gray-400 hover:text-white'}`}
-                                >
-                                    FIND WEIGHT
-                                </button>
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-6 space-y-8">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="space-y-3">
-                                <Label htmlFor="sub-select" className="text-sm font-semibold text-gray-300">Substance</Label>
-                                <select
-                                    id="sub-select"
-                                    value={substanceId}
-                                    onChange={(e) => setSubstanceId(e.target.value)}
-                                    className="w-full h-11 px-3 rounded-md bg-black/40 border border-white/10 text-white focus:border-cyan-500/50 outline-none appearance-none cursor-pointer hover:bg-black/60 transition-colors"
-                                >
-                                    <optgroup label="Acids & Bases" className="bg-gray-900">
-                                        {SUBSTANCES.filter(s => !s.type.includes('salt')).map(s => (
-                                            <option key={s.id} value={s.id}>{s.name}</option>
-                                        ))}
-                                    </optgroup>
-                                    <optgroup label="Salts" className="bg-gray-900">
-                                        {SUBSTANCES.filter(s => s.type.includes('salt')).map(s => (
-                                            <option key={s.id} value={s.id}>{s.name}</option>
-                                        ))}
-                                    </optgroup>
-                                </select>
-                            </div>
-                            <div className="space-y-3">
-                                <Label htmlFor="sub-input" className="text-sm font-semibold text-gray-300">
-                                    {calcMode === 'find_ph' ? 'Concentration (M)' : 'Target pH Level'}
-                                </Label>
-                                <Input
-                                    id="sub-input"
-                                    type="number"
-                                    placeholder={calcMode === 'find_ph' ? 'e.g. 0.1' : 'e.g. 8.5'}
-                                    value={inputVal}
-                                    onChange={(e) => setInputVal(e.target.value)}
-                                    className="bg-black/40 border-white/10 focus:border-cyan-500/50 h-11"
-                                />
-                            </div>
-                            <div className="space-y-3">
-                                <Label htmlFor="target-vol" className="text-sm font-semibold text-gray-300">Final Volume (L)</Label>
-                                <Input
-                                    id="target-vol"
-                                    type="number"
-                                    placeholder="e.g. 0.5"
-                                    value={targetVolume}
-                                    onChange={(e) => setTargetVolume(e.target.value)}
-                                    className="bg-black/40 border-white/10 focus:border-cyan-500/50 h-11"
-                                />
+              <TabsContent value="ph" className="mt-0 outline-none space-y-8 animate-in fade-in duration-500">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className="lg:col-span-1 space-y-6">
+                            <div className="space-y-4 bg-white/[0.02] border border-white/5 p-6 rounded-2xl">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] uppercase font-black text-gray-500 tracking-widest">Substance</Label>
+                                    <select
+                                        value={substanceId}
+                                        onChange={(e) => setSubstanceId(e.target.value)}
+                                        className="w-full h-11 px-4 rounded-xl bg-black border border-white/10 text-white font-bold focus:border-cyan-500/50 outline-none appearance-none"
+                                    >
+                                        <optgroup label="Acids & Bases" className="bg-gray-900">
+                                            {SUBSTANCES.filter(s => !s.type.includes('salt')).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                        </optgroup>
+                                        <optgroup label="Salts" className="bg-gray-900">
+                                            {SUBSTANCES.filter(s => s.type.includes('salt')).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                        </optgroup>
+                                    </select>
+                                </div>
+
+                                {SUBSTANCES.find(s => s.id === substanceId)?.isCustom && (
+                                    <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2">
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] uppercase font-black text-gray-500">pKa</Label>
+                                            <Input type="number" value={customPka} onChange={e => setCustomPka(e.target.value)} className="bg-black border-white/10 h-10" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] uppercase font-black text-gray-500">MW</Label>
+                                            <Input type="number" value={customMw} onChange={e => setCustomMw(e.target.value)} className="bg-black border-white/10 h-10" />
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="pt-4 border-t border-white/5 space-y-4">
+                                    <div className="flex bg-black rounded-lg p-1 border border-white/10">
+                                        <button onClick={() => setCalcMode('find_ph')} className={`flex-1 py-2 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${calcMode === 'find_ph' ? 'bg-white/10 text-white' : 'text-gray-600 hover:text-gray-400'}`}>CONC → pH</button>
+                                        <button onClick={() => setCalcMode('find_m')} className={`flex-1 py-2 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${calcMode === 'find_m' ? 'bg-white/10 text-white' : 'text-gray-600 hover:text-gray-400'}`}>pH → MOL</button>
+                                    </div>
+
+                                    {calcMode === 'find_ph' && (
+                                        <div className="flex items-center justify-between px-1">
+                                            <span className="text-[10px] font-bold text-gray-500 uppercase">Use Stock Dilution?</span>
+                                            <button onClick={() => setUseDilutionSource(!useDilutionSource)} className={`w-10 h-5 rounded-full transition-all relative ${useDilutionSource ? 'bg-cyan-500' : 'bg-white/10'}`}>
+                                                <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${useDilutionSource ? 'left-6' : 'left-1'}`} />
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {useDilutionSource && calcMode === 'find_ph' ? (
+                                        <div className="space-y-3 animate-in fade-in duration-300">
+                                            <Input placeholder="Stock Conc (M)" type="number" value={stockVal.c} onChange={e=>setStockVal({...stockVal, c: e.target.value})} className="bg-black border-white/10 h-11" />
+                                            <Input placeholder="Aliquot Vol (L)" type="number" value={stockVal.v} onChange={e=>setStockVal({...stockVal, v: e.target.value})} className="bg-black border-white/10 h-11" />
+                                            <Input placeholder="Final Total Vol (L)" type="number" value={stockVal.totalV} onChange={e=>setStockVal({...stockVal, totalV: e.target.value})} className="bg-black border-white/10 h-11" />
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] uppercase font-black text-gray-500">{calcMode === 'find_ph' ? 'Molarity (M)' : 'Target pH'}</Label>
+                                            <Input type="number" placeholder={calcMode === 'find_ph' ? 'e.g. 0.1' : 'e.g. 2.37'} value={inputVal} onChange={e => setInputVal(e.target.value)} className="bg-black border-white/10 h-11 text-lg font-bold" />
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-2">
+                                        <Label className="text-[10px] uppercase font-black text-gray-500">Preparation Volume (L)</Label>
+                                        <Input type="number" value={targetVolume} onChange={e => setTargetVolume(e.target.value)} className="bg-black border-white/10 h-11" />
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        {substanceResult && !substanceResult.error && (
-                            <div className="animate-in fade-in slide-in-from-top-4 duration-500 space-y-6">
-                                {/* Result Summary Bar */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="flex flex-col justify-center bg-cyan-500/10 border border-cyan-500/20 p-6 rounded-2xl relative overflow-hidden group">
-                                        <div className="absolute right-0 top-0 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
-                                            <ArrowRightLeft className="w-24 h-24 -mr-4 -mt-4" />
-                                        </div>
-                                        <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-400 font-black mb-1">Determined pH</p>
-                                        <p className="text-4xl font-bold text-white tracking-tighter">
-                                            {substanceResult.ph.toFixed(2)}
-                                        </p>
-                                    </div>
-                                    
-                                    {substanceResult.labPrep && (
-                                        <div className="flex flex-col justify-center bg-white/[0.03] border border-white/10 p-6 rounded-2xl relative overflow-hidden group">
-                                            <div className="absolute right-0 top-0 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
-                                                <Scale className="w-24 h-24 -mr-4 -mt-4 text-white" />
+                        <div className="lg:col-span-2 space-y-6">
+                            {substanceResult ? (
+                                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="bg-white/[0.03] border border-white/10 p-8 rounded-3xl relative overflow-hidden shadow-2xl">
+                                            <p className="text-[10px] uppercase tracking-[0.3em] text-cyan-500 font-black mb-2">Resulting pH</p>
+                                            <p className="text-7xl font-black tracking-tighter text-white">{substanceResult.ph.toFixed(3)}</p>
+                                            <div className="mt-6 pt-6 border-t border-white/5 grid grid-cols-2 gap-4 text-[10px] font-black uppercase text-gray-500">
+                                                <div>[H⁺]: <span className="text-white">{substanceResult.h.toExponential(2)}</span></div>
+                                                <div>[OH⁻]: <span className="text-white">{substanceResult.oh.toExponential(2)}</span></div>
                                             </div>
-                                            <p className="text-[10px] uppercase tracking-[0.2em] text-gray-400 font-black mb-1">Required Mass</p>
-                                            <p className="text-4xl font-bold text-white tracking-tighter">
-                                                {substanceResult.labPrep.mass.toFixed(4)}
-                                                <span className="ml-2 text-sm font-medium text-gray-500">grams</span>
+                                        </div>
+
+                                        <div className="bg-cyan-500 border border-cyan-400 p-8 rounded-3xl relative overflow-hidden shadow-2xl shadow-cyan-500/20">
+                                            <Scale className="absolute right-[-10%] top-[-10%] w-40 h-40 text-black/10 rotate-12" />
+                                            <p className="text-[10px] uppercase tracking-[0.3em] text-black/60 font-black mb-2">Required Mass</p>
+                                            <p className="text-7xl font-black tracking-tighter text-black">
+                                                {substanceResult.labPrep?.mass.toFixed(4) ?? '0.0000'}
                                             </p>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Ion Concentration Details */}
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    {[
-                                        { label: 'Molarity', value: substanceResult.m.toExponential(3) + ' M' },
-                                        { label: 'pOH', value: substanceResult.poh.toFixed(2) },
-                                        { label: '[H⁺]', value: substanceResult.h.toExponential(2) },
-                                        { label: '[OH⁻]', value: substanceResult.oh.toExponential(2) },
-                                    ].map((item, idx) => (
-                                        <div key={idx} className="p-3 rounded-xl bg-black/40 border border-white/5 text-center">
-                                            <p className="text-[9px] uppercase tracking-widest text-gray-500 font-bold mb-1">{item.label}</p>
-                                            <p className="text-sm font-mono font-bold text-gray-200">{item.value}</p>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Math Breakdown */}
-                                <div className="p-6 rounded-2xl bg-black/40 border border-white/10 space-y-6">
-                                    <div>
-                                        <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-black mb-4 flex items-center">
-                                            <Info className="w-3 h-3 mr-2 text-cyan-400/50" />
-                                            Chemical Step-by-Step
-                                        </p>
-                                        <div className="space-y-4 bg-black/20 p-4 rounded-xl border border-white/5">
-                                            {substanceResult.steps.map((step, i) => (
-                                                <div key={i} className={i !== 0 ? 'pt-4 border-t border-white/5' : ''}>
-                                                    <BlockMath math={step} />
-                                                </div>
-                                            ))}
+                                            <p className="mt-2 text-black/60 font-black uppercase text-[10px] tracking-widest ml-1">Grams to weigh</p>
                                         </div>
                                     </div>
 
-                                    {substanceResult.labPrep && (
+                                    <div className="bg-white/[0.02] border border-white/5 p-8 rounded-3xl space-y-8 font-mono">
                                         <div>
-                                            <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-black mb-4">Preparation Logic</p>
-                                            <div className="bg-black/20 p-4 rounded-xl border border-white/5">
-                                                <BlockMath math={`m = M \\times V \\times MW`} />
-                                                <div className="mt-4 pt-4 border-t border-white/5">
-                                                    <BlockMath math={`m = ${substanceResult.labPrep.m.toExponential(3)} \\text{ M} \\times ${substanceResult.labPrep.vol} \\text{ L} \\times ${substanceResult.labPrep.mw} \\text{ g/mol} = ${substanceResult.labPrep.mass.toFixed(4)} \\text{ g}`} />
-                                                </div>
+                                            <div className="flex items-center space-x-2 mb-6">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
+                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Derivation</h3>
+                                            </div>
+                                            <div className="space-y-6">
+                                                {substanceResult.steps.map((s, i) => <div key={i} className="bg-black/40 p-4 rounded-xl border border-white/5"><BlockMath key={i} math={s} /></div>)}
+                                                {substanceResult.labPrep && (
+                                                    <div className="bg-cyan-500/5 p-4 rounded-xl border border-cyan-500/10">
+                                                        <BlockMath math={`m = M \\cdot V \\cdot MW = ${substanceResult.labPrep.m.toExponential(2)} \\cdot ${substanceResult.labPrep.vol} \\cdot ${substanceResult.labPrep.mw} = ${substanceResult.labPrep.mass.toFixed(4)} \\text{ g}`} />
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
-                                    )}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-
-                        {substanceResult?.error && (
-                            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center">
-                                <Info className="w-4 h-4 mr-2" />
-                                {substanceResult.error}
-                            </div>
-                        )}
-                    </CardContent>
-                    </Card>
-
-                    {/* Quick Unit Converter */}
-                    <Card className="bg-white/5 border-white/10 text-white overflow-hidden shadow-xl">
-                    <CardHeader className="border-b border-white/5 bg-white/[0.02] py-4">
-                        <CardTitle className="text-md font-bold flex items-center">
-                        <Thermometer className="w-4 h-4 mr-2 text-cyan-400" />
-                        Quick Ion Converter
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-6 space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="ph-type" className="text-xs uppercase text-gray-500 font-bold">Input Type</Label>
-                            <select
-                            id="ph-type"
-                            value={phInput.type}
-                            onChange={(e) => setPhInput({ ...phInput, type: e.target.value })}
-                            className="w-full h-10 px-3 rounded-md bg-black/40 border border-white/10 text-white focus:border-cyan-500/50 outline-none appearance-none cursor-pointer"
-                            >
-                            <option value="ph">pH</option>
-                            <option value="h">[H⁺]</option>
-                            <option value="poh">pOH</option>
-                            <option value="oh">[OH⁻]</option>
-                            </select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="ph-val" className="text-xs uppercase text-gray-500 font-bold">Value</Label>
-                            <Input
-                            id="ph-val"
-                            type="number"
-                            placeholder="e.g. 7.0"
-                            value={phInput.value}
-                            onChange={(e) => setPhInput({ ...phInput, value: e.target.value })}
-                            className="bg-black/40 border-white/10 focus:border-cyan-500/50 h-10"
-                            />
-                        </div>
-                        </div>
-
-                        {phResult && (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in duration-300">
-                            {[
-                                { label: 'pH', value: phResult.results.ph.toFixed(2), color: 'text-cyan-400' },
-                                { label: '[H⁺]', value: phResult.results.h.toExponential(2), color: 'text-white' },
-                                { label: 'pOH', value: phResult.results.poh.toFixed(2), color: 'text-cyan-400' },
-                                { label: '[OH⁻]', value: phResult.results.oh.toExponential(2), color: 'text-white' },
-                            ].map((item, idx) => (
-                                <div key={idx} className="p-3 rounded-xl bg-black/40 border border-white/5 text-center">
-                                    <p className="text-[9px] uppercase tracking-widest text-gray-500 font-bold mb-1">{item.label}</p>
-                                    <p className={`text-sm font-bold ${item.color}`}>{item.value}</p>
+                            ) : (
+                                <div className="h-full min-h-[400px] border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center text-gray-600 space-y-4">
+                                    <FlaskConical className="w-12 h-12 opacity-20" />
+                                    <p className="text-xs font-black uppercase tracking-widest">Waiting for input parameters...</p>
                                 </div>
-                            ))}
+                            )}
                         </div>
-                        )}
-                    </CardContent>
-                    </Card>
+                    </div>
               </TabsContent>
 
-              {/* Dilution Tab */}
-              <TabsContent value="dilution" className="mt-0 outline-none">
-                <Card className="bg-white/5 border-white/10 text-white overflow-hidden shadow-2xl">
-                  <CardHeader className="border-b border-white/5 bg-white/[0.02]">
-                    <CardTitle className="text-xl font-bold flex items-center">
-                      <Droplets className="w-5 h-5 mr-2 text-cyan-400" />
-                      Dilution Calculator <span className="ml-2 text-sm font-normal text-gray-400 font-mono italic">(C₁V₁ = C₂V₂)</span>
-                    </CardTitle>
-                    <CardDescription className="text-gray-400">
-                      Solve for any unknown variable in the dilution equation. Enter three values to compute the fourth.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-6 space-y-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-3">
-                        <Label htmlFor="c1" className="text-sm font-semibold text-gray-300">Initial Concentration (<InlineMath math="C_1" />)</Label>
-                        <Input
-                          id="c1"
-                          type="number"
-                          placeholder="Stock concentration"
-                          value={dilution.c1}
-                          onChange={(e) => setDilution({ ...dilution, c1: e.target.value })}
-                          className="bg-black/40 border-white/10 focus:border-cyan-500/50 transition-all h-11"
-                        />
-                      </div>
-                      <div className="space-y-3">
-                        <Label htmlFor="v1" className="text-sm font-semibold text-gray-300">Initial Volume (<InlineMath math="V_1" />)</Label>
-                        <Input
-                          id="v1"
-                          type="number"
-                          placeholder="Volume to use"
-                          value={dilution.v1}
-                          onChange={(e) => setDilution({ ...dilution, v1: e.target.value })}
-                          className="bg-black/40 border-white/10 focus:border-cyan-500/50 transition-all h-11"
-                        />
-                      </div>
-                      <div className="space-y-3">
-                        <Label htmlFor="c2" className="text-sm font-semibold text-gray-300">Final Concentration (<InlineMath math="C_2" />)</Label>
-                        <Input
-                          id="c2"
-                          type="number"
-                          placeholder="Target concentration"
-                          value={dilution.c2}
-                          onChange={(e) => setDilution({ ...dilution, c2: e.target.value })}
-                          className="bg-black/40 border-white/10 focus:border-cyan-500/50 transition-all h-11"
-                        />
-                      </div>
-                      <div className="space-y-3">
-                        <Label htmlFor="v2" className="text-sm font-semibold text-gray-300">Final Volume (<InlineMath math="V_2" />)</Label>
-                        <Input
-                          id="v2"
-                          type="number"
-                          placeholder="Total final volume"
-                          value={dilution.v2}
-                          onChange={(e) => setDilution({ ...dilution, v2: e.target.value })}
-                          className="bg-black/40 border-white/10 focus:border-cyan-500/50 transition-all h-11"
-                        />
-                      </div>
+              <TabsContent value="dilution" className="mt-0 outline-none animate-in fade-in duration-500">
+                <Card className="bg-white/[0.02] border-white/10 rounded-3xl overflow-hidden shadow-2xl">
+                  <CardContent className="p-10 space-y-10">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 font-mono">
+                      {['c1', 'v1', 'c2', 'v2'].map((key) => (
+                        <div key={key} className="space-y-3">
+                          <Label className="text-[10px] uppercase font-black text-gray-500 ml-1">{key}</Label>
+                          <Input type="number" placeholder={`Enter ${key}`} value={dilution[key]} onChange={(e) => setDilution({ ...dilution, [key]: e.target.value })} className="bg-black border-white/10 h-12 font-bold text-lg rounded-xl" />
+                        </div>
+                      ))}
                     </div>
-
                     {dilutionResult && (
-                      <div className="animate-in fade-in slide-in-from-top-4 duration-500">
-                        <div className="p-6 rounded-2xl bg-cyan-500/5 border border-cyan-500/20 space-y-6">
-                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <h3 className="text-cyan-400 font-bold flex items-center uppercase tracking-wider text-xs">
-                              <Calculator className="w-4 h-4 mr-2" />
-                              Result
-                            </h3>
-                            <div className="px-4 py-2 rounded-lg bg-black/40 border border-white/10">
-                                <span className="text-2xl font-bold text-white tracking-tight">
-                                    {dilutionResult.res.toFixed(4)}
-                                </span>
-                                <span className="ml-2 text-[10px] text-gray-500 uppercase tracking-widest font-black">units</span>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-4 pt-6 border-t border-white/10">
-                            <div>
-                              <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-black mb-3 text-center">Mathematical Breakdown</p>
-                              <div className="bg-black/40 p-4 rounded-xl border border-white/5 overflow-x-auto">
-                                <BlockMath math={dilutionResult.formula} />
-                                <div className="mt-4 pt-4 border-t border-white/5">
-                                    <BlockMath math={dilutionResult.calculation} />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Molarity Tab */}
-              <TabsContent value="molarity" className="mt-0 outline-none">
-                <Card className="bg-white/5 border-white/10 text-white overflow-hidden shadow-2xl">
-                  <CardHeader className="border-b border-white/5 bg-white/[0.02]">
-                    <CardTitle className="text-xl font-bold flex items-center">
-                      <Calculator className="w-5 h-5 mr-2 text-cyan-400" />
-                      Generic Molarity Calculator
-                    </CardTitle>
-                    <CardDescription className="text-gray-400">
-                      Standard Mass / Molarity / Volume / Molecular Weight solver.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-6 space-y-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-3">
-                        <Label htmlFor="m-mass" className="text-sm font-semibold text-gray-300">Mass (<InlineMath math="m" />) [g]</Label>
-                        <Input
-                          id="m-mass"
-                          type="number"
-                          placeholder="Mass of solute"
-                          value={molarity.mass}
-                          onChange={(e) => setMolarity({ ...molarity, mass: e.target.value })}
-                          className="bg-black/40 border-white/10 focus:border-cyan-500/50 h-11"
-                        />
-                      </div>
-                      <div className="space-y-3">
-                        <Label htmlFor="m-mw" className="text-sm font-semibold text-gray-300">Molar Mass (<InlineMath math="MW" />) [g/mol]</Label>
-                        <Input
-                          id="m-mw"
-                          type="number"
-                          placeholder="Molecular weight"
-                          value={molarity.molarMass}
-                          onChange={(e) => setMolarity({ ...molarity, molarMass: e.target.value })}
-                          className="bg-black/40 border-white/10 focus:border-cyan-500/50 h-11"
-                        />
-                      </div>
-                      <div className="space-y-3">
-                        <Label htmlFor="m-v" className="text-sm font-semibold text-gray-300">Volume (<InlineMath math="V" />) [L]</Label>
-                        <Input
-                          id="m-v"
-                          type="number"
-                          placeholder="Solution volume in Liters"
-                          value={molarity.volume}
-                          onChange={(e) => setMolarity({ ...molarity, volume: e.target.value })}
-                          className="bg-black/40 border-white/10 focus:border-cyan-500/50 h-11"
-                        />
-                      </div>
-                      <div className="space-y-3">
-                        <Label htmlFor="m-mol" className="text-sm font-semibold text-gray-300">Molarity (<InlineMath math="M" />) [mol/L]</Label>
-                        <Input
-                          id="m-mol"
-                          type="number"
-                          placeholder="Molar concentration"
-                          value={molarity.molarity}
-                          onChange={(e) => setMolarity({ ...molarity, molarity: e.target.value })}
-                          className="bg-black/40 border-white/10 focus:border-cyan-500/50 h-11"
-                        />
-                      </div>
-                    </div>
-
-                    {molarityResult && (
-                      <div className="animate-in fade-in slide-in-from-top-4 duration-500">
-                        <div className="p-6 rounded-2xl bg-cyan-500/5 border border-cyan-500/20 space-y-6">
-                          <div className="flex justify-between items-center">
-                            <h3 className="text-cyan-400 font-bold uppercase tracking-wider text-xs flex items-center">
-                              <Calculator className="w-4 h-4 mr-2" />
-                              Calculated Result
-                            </h3>
-                            <div className="text-2xl font-bold text-white tracking-tight bg-black/40 px-4 py-2 rounded-lg border border-white/10">
-                              {molarityResult.res.toFixed(4)}
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-4 pt-6 border-t border-white/10">
-                            <div className="bg-black/40 p-4 rounded-xl border border-white/5 space-y-4">
-                                <BlockMath math={molarityResult.formula} />
-                                <div className="mt-4 pt-4 border-t border-white/5">
-                                    <BlockMath math={molarityResult.calculation} />
-                                </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* PPB Tab */}
-              <TabsContent value="ppb" className="mt-0 outline-none">
-                <Card className="bg-white/5 border-white/10 text-white overflow-hidden shadow-2xl">
-                  <CardHeader className="border-b border-white/5 bg-white/[0.02]">
-                    <CardTitle className="text-xl font-bold flex items-center">
-                      <FlaskConical className="w-5 h-5 mr-2 text-cyan-400" />
-                      Molarity to PPM/PPB
-                    </CardTitle>
-                    <CardDescription className="text-gray-400">
-                      Convert Molar concentration to Parts Per Million (PPM) or Parts Per Billion (PPB).
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-6 space-y-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-3">
-                        <Label htmlFor="ppb-m" className="text-sm font-semibold text-gray-300">Molarity (M)</Label>
-                        <Input
-                          id="ppb-m"
-                          type="number"
-                          placeholder="e.g. 0.001"
-                          value={ppbConv.molarity}
-                          onChange={(e) => setPpbConv({ ...ppbConv, molarity: e.target.value })}
-                          className="bg-black/40 border-white/10 focus:border-cyan-500/50 h-11"
-                        />
-                      </div>
-                      <div className="space-y-3">
-                        <Label htmlFor="ppb-mw" className="text-sm font-semibold text-gray-300">Molar Mass (g/mol)</Label>
-                        <Input
-                          id="ppb-mw"
-                          type="number"
-                          placeholder="e.g. 207.2 (for Pb)"
-                          value={ppbConv.molarMass}
-                          onChange={(e) => setPpbConv({ ...ppbConv, molarMass: e.target.value })}
-                          className="bg-black/40 border-white/10 focus:border-cyan-500/50 h-11"
-                        />
-                      </div>
-                    </div>
-
-                    {ppbResult && (
-                      <div className="animate-in fade-in slide-in-from-top-4 duration-500 space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="p-6 rounded-2xl bg-black/40 border border-white/10 text-center">
-                            <p className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mb-2">Result (PPM)</p>
-                            <p className="text-3xl font-bold text-white">{ppbResult.ppm.toFixed(2)}</p>
-                            <p className="text-[10px] text-gray-500 mt-1">mg/L</p>
-                          </div>
-                          <div className="p-6 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-center">
-                            <p className="text-[10px] uppercase tracking-widest text-cyan-400/70 font-bold mb-2">Result (PPB)</p>
-                            <p className="text-3xl font-bold text-cyan-400">{ppbResult.ppb.toLocaleString()}</p>
-                            <p className="text-[10px] text-cyan-400/50 mt-1">µg/L</p>
-                          </div>
-                        </div>
-
-                        <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
-                            <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-bold mb-4 text-center">Calculation Pathway</p>
-                            <div className="bg-black/40 p-4 rounded-xl border border-white/5 space-y-4 overflow-x-auto">
-                                <BlockMath math={ppbResult.formula} />
-                                <div className="mt-4 pt-4 border-t border-white/5">
-                                    <BlockMath math={ppbResult.calculation} />
-                                </div>
-                            </div>
-                        </div>
+                      <div className="p-10 rounded-3xl bg-cyan-500/10 border border-cyan-500/20">
+                        <p className="text-[10px] uppercase font-black text-cyan-400 mb-2">Result</p>
+                        <p className="text-7xl font-black text-white mb-8 tracking-tighter">{dilutionResult.res.toFixed(4)}</p>
+                        <div className="p-6 bg-black/40 rounded-2xl border border-white/5"><BlockMath math={dilutionResult.calculation} /></div>
                       </div>
                     )}
                   </CardContent>
                 </Card>
               </TabsContent>
             </Tabs>
-
-            {/* Laboratory Guidance */}
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-8 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-                <Beaker className="w-32 h-32 text-cyan-400" />
-              </div>
-              <h2 className="text-xl font-bold text-white mb-6 flex items-center">
-                <FlaskConical className="w-5 h-5 mr-2 text-cyan-400" />
-                Laboratory Guidance
-              </h2>
-              <div className="grid md:grid-cols-3 gap-8 text-sm text-gray-400 relative z-10">
-                <div className="space-y-3">
-                  <h3 className="text-white font-bold uppercase tracking-widest text-[10px]">Analytical Precision</h3>
-                  <p className="leading-relaxed">Always use analytical balances for mass and volumetric glassware for volume. Calibrate pH meters daily with standard buffers (pH 4, 7, and 10).</p>
-                </div>
-                <div className="space-y-3">
-                  <h3 className="text-white font-bold uppercase tracking-widest text-[10px]">Chemical Safety</h3>
-                  <p className="leading-relaxed">Add acids to water to prevent exothermic splashing. Always consult the SDS (Safety Data Sheet) before handling new reagents.</p>
-                </div>
-                <div className="space-y-3">
-                  <h3 className="text-white font-bold uppercase tracking-widest text-[10px]">Unit Consistency</h3>
-                  <p className="leading-relaxed">Most calculators expect standard SI units: Molarity (M), Liters (L), and Grams (g). Double-check conversions if using mL or mg.</p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </ResponsiveSection>
