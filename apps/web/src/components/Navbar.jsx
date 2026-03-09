@@ -19,6 +19,7 @@ const Navbar = () => {
     { path: '/', label: 'Home' },
     { path: '/projects', label: 'Projects' },
     { path: '/blog', label: 'Blog' },
+    { path: '/scientific-calculations', label: 'Lab Calc' },
     { path: '/about', label: 'About' },
   ];
 

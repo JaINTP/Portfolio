@@ -12,6 +12,7 @@ import About from "./pages/About";
 import Admin from "./pages/Admin";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
+import ScientificCalculations from "./pages/ScientificCalculations";
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:id" element={<BlogDetail />} />
           <Route path="/about" element={<About />} />
+          <Route path="/scientific-calculations" element={<ScientificCalculations />} />
           <Route path="/dash" element={<Admin />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
