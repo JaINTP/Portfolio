@@ -8,6 +8,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../co
 import 'katex/dist/katex.min.css';
 import { InlineMath, BlockMath } from 'react-katex';
 
+const KW = 1e-14;
+
 const SUBSTANCES = [
   { id: 'custom', name: 'Custom (Strong)', type: 'strong_acid', ka: null },
   { id: 'hcl', name: 'Hydrochloric Acid (HCl)', type: 'strong_acid', ka: null },
@@ -19,6 +21,12 @@ const SUBSTANCES = [
   { id: 'formic', name: 'Formic Acid (HCOOH)', type: 'weak_acid', ka: 1.8e-4, pka: 3.74 },
   { id: 'nh3', name: 'Ammonia (NH₃)', type: 'weak_base', kb: 1.8e-5, pkb: 4.74 },
   { id: 'pyridine', name: 'Pyridine (C₅H₅N)', type: 'weak_base', kb: 1.7e-9, pkb: 8.77 },
+  // Salts
+  { id: 'nacl', name: 'Sodium Chloride (NaCl)', type: 'neutral_salt' },
+  { id: 'na_acetate', name: 'Sodium Acetate (NaCH₃COO)', type: 'salt_basic', ka: 1.8e-5, conjugate: 'CH₃COO⁻' },
+  { id: 'nh4cl', name: 'Ammonium Chloride (NH₄Cl)', type: 'salt_acidic', kb: 1.8e-5, conjugate: 'NH₄⁺' },
+  { id: 'nacn', name: 'Sodium Cyanide (NaCN)', type: 'salt_basic', ka: 6.2e-10, conjugate: 'CN⁻' },
+  { id: 'nh4no3', name: 'Ammonium Nitrate (NH₄NO₃)', type: 'salt_acidic', kb: 1.8e-5, conjugate: 'NH₄⁺' },
 ];
 
 const ScientificCalculations = () => {
@@ -175,7 +183,6 @@ const ScientificCalculations = () => {
             `pH = 14 - pOH = ${ph.toFixed(2)}`
         ];
     } else if (sub.type === 'weak_acid') {
-        // [H+] = sqrt(Ka * C)
         h = Math.sqrt(sub.ka * conc);
         ph = -Math.log10(h);
         poh = 14 - ph;
@@ -197,6 +204,47 @@ const ScientificCalculations = () => {
             `pOH = -\\log_{10}(${oh.toExponential(4)}) = ${poh.toFixed(2)}`,
             `pH = 14 - pOH = ${ph.toFixed(2)}`,
             `K_b = ${sub.kb.toExponential(2)} \\text{ (p}K_b = ${sub.pkb}\\text{)}`
+        ];
+    } else if (sub.type === 'salt_basic') {
+        // Salt of weak acid + strong base (e.g. Sodium Acetate)
+        // Hydrolysis: A- + H2O <-> HA + OH-
+        // Kh = Kw / Ka
+        const kh = KW / sub.ka;
+        oh = Math.sqrt(kh * conc);
+        poh = -Math.log10(oh);
+        ph = 14 - poh;
+        h = Math.pow(10, -ph);
+        steps = [
+            `\\text{Salt Hydrolysis (Anion): } ${sub.conjugate} + H_2O \\rightleftharpoons HA + OH^-`,
+            `K_h = \\frac{K_w}{K_a} = \\frac{10^{-14}}{${sub.ka.toExponential(2)}} = ${kh.toExponential(2)}`,
+            `[OH^-] = \\sqrt{K_h \\times C_{salt}} = \\sqrt{${kh.toExponential(2)} \\times ${conc}} = ${oh.toExponential(4)} \\text{ M}`,
+            `pOH = -\\log_{10}(${oh.toExponential(4)}) = ${poh.toFixed(2)}`,
+            `pH = 14 - pOH = ${ph.toFixed(2)}`
+        ];
+    } else if (sub.type === 'salt_acidic') {
+        // Salt of strong acid + weak base (e.g. Ammonium Chloride)
+        // Hydrolysis: BH+ + H2O <-> B + H3O+
+        // Kh = Kw / Kb
+        const kh = KW / sub.kb;
+        h = Math.sqrt(kh * conc);
+        ph = -Math.log10(h);
+        poh = 14 - ph;
+        oh = Math.pow(10, -poh);
+        steps = [
+            `\\text{Salt Hydrolysis (Cation): } ${sub.conjugate} + H_2O \\rightleftharpoons B + H_3O^+`,
+            `K_h = \\frac{K_w}{K_b} = \\frac{10^{-14}}{${sub.kb.toExponential(2)}} = ${kh.toExponential(2)}`,
+            `[H_3O^+] = \\sqrt{K_h \\times C_{salt}} = \\sqrt{${kh.toExponential(2)} \\times ${conc}} = ${h.toExponential(4)} \\text{ M}`,
+            `pH = -\\log_{10}(${h.toExponential(4)}) = ${ph.toFixed(2)}`,
+            `pOH = 14 - pH = ${poh.toFixed(2)}`
+        ];
+    } else if (sub.type === 'neutral_salt') {
+        ph = 7.00;
+        poh = 7.00;
+        h = 1e-7;
+        oh = 1e-7;
+        steps = [
+            `\\text{Neutral Salt: No significant hydrolysis occurs.}`,
+            `pH = 7.00 \\text{ (at 25°C)}`
         ];
     }
 
@@ -413,7 +461,7 @@ const ScientificCalculations = () => {
                         Quick Converter
                         </Thermometer>
                         <CardDescription className="text-gray-400">
-                        Convert between pH, pOH, and ion concentrations for strong species.
+                        Convert between pH, pOH, and ion concentrations.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="p-6 space-y-8">
@@ -481,10 +529,10 @@ const ScientificCalculations = () => {
                     <CardHeader className="border-b border-white/5 bg-white/[0.02]">
                         <CardTitle className="text-xl font-semibold flex items-center">
                         <FlaskConical className="w-5 h-5 mr-2 text-cyan-400" />
-                        Calculate from Substance
+                        Calculate from Substance (Acids, Bases, Salts)
                         </CardTitle>
                         <CardDescription className="text-gray-400">
-                        Select a specific acid or base to calculate its resulting pH based on concentration.
+                        Select a specific acid, base, or salt to calculate its resulting pH.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="p-6 space-y-8">
@@ -497,9 +545,21 @@ const ScientificCalculations = () => {
                                     onChange={(e) => setSubstanceId(e.target.value)}
                                     className="w-full h-11 px-3 rounded-md bg-black/40 border border-white/10 text-white focus:border-cyan-500/50 outline-none appearance-none cursor-pointer"
                                 >
-                                    {SUBSTANCES.map(s => (
-                                        <option key={s.id} value={s.id}>{s.name}</option>
-                                    ))}
+                                    <optgroup label="Strong Acids/Bases" className="bg-gray-900">
+                                        {SUBSTANCES.filter(s => s.type.startsWith('strong')).map(s => (
+                                            <option key={s.id} value={s.id}>{s.name}</option>
+                                        ))}
+                                    </optgroup>
+                                    <optgroup label="Weak Acids/Bases" className="bg-gray-900">
+                                        {SUBSTANCES.filter(s => s.type.startsWith('weak')).map(s => (
+                                            <option key={s.id} value={s.id}>{s.name}</option>
+                                        ))}
+                                    </optgroup>
+                                    <optgroup label="Salts" className="bg-gray-900">
+                                        {SUBSTANCES.filter(s => s.type.startsWith('salt') || s.type === 'neutral_salt').map(s => (
+                                            <option key={s.id} value={s.id}>{s.name}</option>
+                                        ))}
+                                    </optgroup>
                                 </select>
                             </div>
                             <div className="space-y-3">
