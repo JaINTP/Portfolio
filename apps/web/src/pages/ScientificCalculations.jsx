@@ -281,7 +281,7 @@ const ScientificCalculations = () => {
                             "Toggle 'Dilution On' if you are preparing your solution from a liquid stock solution.",
                             "The calculated Mass/Volume requirement helps you prepare the exact amount for your target volume."
                         ]}
-                        formula="K_a = \frac{[H^+][A^-]}{[HA]}"
+                        formula="K_a = \\frac{[H^+][A^-]}{[HA]}"
                     />
               </TabsContent>
 
@@ -307,7 +307,7 @@ const ScientificCalculations = () => {
                                 </div>
                             </div>
                             <div className="pt-8 border-t border-white/5 text-gray-500 text-xs leading-relaxed italic">
-                                Solving Henderson-Hasselbalch: <InlineMath math="pH = pK_a + \log\frac{[A^-]}{[HA]}" />
+                                Solving Henderson-Hasselbalch: <InlineMath math="pH = pK_a + \\log\\frac{[A^-]}{[HA]}" />
                             </div>
                         </Card>
                     </div>
@@ -340,7 +340,7 @@ const ScientificCalculations = () => {
                         "The resulting pH reflects the equilibrium state of the mixture.",
                         "The Base/Acid ratio indicates the protonation state of your buffer system."
                     ]}
-                    formula="pH = pK_a + \log\frac{[A^-]}{[HA]}"
+                    formula="pH = pK_a + \\log\\frac{[A^-]}{[HA]}"
                 />
               </TabsContent>
 
@@ -397,7 +397,7 @@ const ScientificCalculations = () => {
                         "Molar Absorptivity (ε) is a constant unique to your substance at a specific wavelength.",
                         "Path Length (b) is usually 1.0 cm (the standard width of a UV-Vis cuvette)."
                     ]}
-                    formula="A = \epsilon \cdot b \cdot c"
+                    formula="A = \\epsilon \\cdot b \\cdot c"
                 />
               </TabsContent>
 
@@ -424,7 +424,7 @@ const ScientificCalculations = () => {
                         </Card>
                     </div>
                     <div className="lg:col-span-7">
-                        {assayResult && (
+                        {assayResult ? (
                             <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
                                 <Card className="bg-cyan-500 text-black border-none rounded-3xl p-10 flex flex-col justify-center items-center relative overflow-hidden shadow-2xl shadow-cyan-500/20">
                                     <Waves className="absolute right-[-5%] bottom-[-5%] w-64 h-64 text-black/10 rotate-12" />
@@ -448,10 +448,11 @@ const ScientificCalculations = () => {
                         "Enter the Molecular Weight (MW) of the substance in g/mol.",
                         "The calculated Molarity is the 'true' concentration of the concentrated stock.",
                         "Use this stock molarity in the Preparation tab to calculate precise dilutions."
-                    ]}
-                    formula="M = \frac{\rho \cdot P \cdot 10}{MW}"
-                />
-              </TabsContent>
+                        ]}
+                        formula="M = \\frac{\\rho \\cdot P \\cdot 10}{MW}"
+                        />
+                        </TabsContent>
+
             </Tabs>
 
             {/* Global Guidelines */}
