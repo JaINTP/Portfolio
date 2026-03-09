@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Save, Plus, Trash2, LogOut, RefreshCcw, MessageSquare, ExternalLink } from 'lucide-react';
 import { api } from '../lib/api';
 import { resolveMediaUrl } from '../lib/utils';
@@ -106,13 +106,13 @@ const Admin = () => {
       return;
     }
     loadAllContent();
-  }, [hasSession]);
+  }, [hasSession, loadAllContent]);
 
   useEffect(() => {
     if (hasSession && activeTab === 'comments' && comments.length === 0) {
       loadComments(showDeletedComments);
     }
-  }, [hasSession, activeTab]);
+  }, [hasSession, activeTab, comments.length, loadComments, showDeletedComments]);
 
   const setMessage = (message) => {
     setStatusMessage(message);
@@ -136,21 +136,21 @@ const Admin = () => {
     setComments([]);
   };
 
-  const handleSessionExpired = () => {
+  const handleSessionExpired = useCallback(() => {
     setHasSession(false);
     setError('Your session has expired. Please sign in again.');
     resetSessionState();
-  };
+  }, []);
 
-  const handleRequestError = (err, fallbackMessage) => {
+  const handleRequestError = useCallback((err, fallbackMessage) => {
     if (err?.status === 401) {
       handleSessionExpired();
       return;
     }
     setError(err.message || fallbackMessage);
-  };
+  }, [handleSessionExpired]);
 
-  const loadAllContent = async () => {
+  const loadAllContent = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -193,16 +193,16 @@ const Admin = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const loadComments = async (includeDeleted = false) => {
+  const loadComments = useCallback(async (includeDeleted = false) => {
     try {
       const data = await api.listAllComments(includeDeleted);
       setComments(data ?? []);
     } catch (err) {
       handleRequestError(err, 'Failed to load comments.');
     }
-  };
+  }, [handleRequestError]);
 
   const handleDeleteComment = async (commentId) => {
     if (!window.confirm('Delete this comment?')) return;

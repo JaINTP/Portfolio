@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../../lib/api';
 import CommentForm from './CommentForm';
 import CommentItem from './CommentItem';
@@ -9,7 +9,7 @@ const CommentSection = ({ blogId }) => {
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState(null);
 
-    const fetchComments = async () => {
+    const fetchComments = useCallback(async () => {
         try {
             const data = await api.listComments(blogId);
             setComments(data);
@@ -18,9 +18,9 @@ const CommentSection = ({ blogId }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [blogId]);
 
-    const checkSession = async () => {
+    const checkSession = useCallback(async () => {
         // Optimization: Don't hit API if we know we're not logged in
         if (!document.cookie.includes('auth_state=true')) {
             setUser(null);
@@ -39,7 +39,7 @@ const CommentSection = ({ blogId }) => {
         } catch (error) {
             // Not logged in or session expired
         }
-    };
+    }, []);
 
     const handleLogout = async () => {
         try {
@@ -55,7 +55,7 @@ const CommentSection = ({ blogId }) => {
     useEffect(() => {
         fetchComments();
         checkSession();
-    }, [blogId]);
+    }, [fetchComments, checkSession]);
 
     const handleCommentAdded = (newComment, parentId = null) => {
         if (parentId) {
