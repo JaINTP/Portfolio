@@ -87,7 +87,7 @@ export default async function ProjectsPage() {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-cyan-400 transition-colors"
                       >
-                        <Github className="w-5 h-5" />
+                        <GitHub className="w-5 h-5" />
                         Code
                       </a>
                     )}

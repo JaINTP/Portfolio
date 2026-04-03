@@ -1,6 +1,6 @@
 import React from 'react'
 import Link from 'next/link'
-import { Mail, Github, Linkedin, Twitter } from 'lucide-react'
+import { Mail, GitHub, Linkedin, Twitter } from 'lucide-react'
 import { getPayloadClient } from '@/lib/payload'
 
 const Footer = async () => {
@@ -18,7 +18,7 @@ const Footer = async () => {
 
   const socialLinks = []
   if (profile?.social?.github) {
-    socialLinks.push({ icon: Github, href: profile.social.github, label: 'GitHub' })
+    socialLinks.push({ icon: GitHub, href: profile.social.github, label: 'GitHub' })
   }
   if (profile?.social?.linkedin) {
     socialLinks.push({ icon: Linkedin, href: profile.social.linkedin, label: 'LinkedIn' })

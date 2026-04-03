@@ -1,6 +1,6 @@
 import React from 'react'
 import Link from 'next/link'
-import { ArrowRight, Github, ExternalLink, Clock } from 'lucide-react'
+import { ArrowRight, GitHub, ExternalLink, Clock } from 'lucide-react'
 import { getPayloadClient } from '@/lib/payload'
 
 const categoryKey = (value: string) =>
