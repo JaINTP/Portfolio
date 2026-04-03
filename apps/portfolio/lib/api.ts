@@ -1,7 +1,8 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.jaintp.com'
 
 export async function fetchFromApi(endpoint: string) {
-  const res = await fetch(`${API_URL}${endpoint}`, {
+  // Ensure we use the /api prefix which is required by the Python backend
+  const res = await fetch(`${API_URL}/api${endpoint}`, {
     next: { revalidate: 3600 }, // Cache for 1 hour
   })
   
