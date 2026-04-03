@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { Clock } from 'lucide-react'
 import { getPayloadClient } from '@/lib/payload'
 
+export const dynamic = 'force-dynamic'
+
 /* eslint-disable @next/next/no-img-element */
 
 interface Blog {

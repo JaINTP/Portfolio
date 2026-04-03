@@ -6,6 +6,8 @@ import { getPayloadClient } from '@/lib/payload'
 import RichText from '@/components/ui/RichText'
 import Comments from '@/components/blog/Comments'
 
+export const dynamic = 'force-dynamic'
+
 /* eslint-disable @next/next/no-img-element */
 
 interface Blog {

@@ -3,6 +3,8 @@ import { getPayloadClient } from '@/lib/payload'
 import RichText from '@/components/ui/RichText'
 import { Mail, MapPin, Code2, Github, Linkedin, Twitter } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 /* eslint-disable @next/next/no-img-element */
 
 interface AboutProfile {
