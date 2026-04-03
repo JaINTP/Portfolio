@@ -19,7 +19,7 @@
     "@prisma/client": "^7.6.0",
     "graphql": "^16.13.2",
     "lucide-react": "^1.7.0",
-    "next": "^15.5.14",
+    "next": "15.4.11",
     "next-auth": "^5.0.0-beta.25",
     "payload": "^3.81.0",
     "prisma": "^7.6.0",
