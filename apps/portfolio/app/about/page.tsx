@@ -3,10 +3,12 @@ import { getPayloadClient } from '@/lib/payload'
 import RichText from '@/components/ui/RichText'
 import { Mail, MapPin, Code2, Github, Linkedin, Twitter } from 'lucide-react'
 
+/* eslint-disable @next/next/no-img-element */
+
 interface AboutProfile {
   name: string
   title: string
-  bio: any
+  bio: unknown
   email: string
   location: string
   skills?: { id: string; skill: string }[]
@@ -14,7 +16,7 @@ interface AboutProfile {
   dog?: {
     name: string
     role: string
-    bio: any
+    bio: unknown
     image?: { url: string } | string
     skills?: { id: string; skill: string }[]
   }

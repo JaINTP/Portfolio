@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { Clock } from 'lucide-react'
 import { getPayloadClient } from '@/lib/payload'
 
+/* eslint-disable @next/next/no-img-element */
+
 interface Blog {
   id: string
   title: string

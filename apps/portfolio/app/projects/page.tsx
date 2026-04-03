@@ -3,11 +3,13 @@ import Link from 'next/link'
 import { Github, ExternalLink, ArrowRight } from 'lucide-react'
 import { getPayloadClient } from '@/lib/payload'
 
+/* eslint-disable @next/next/no-img-element */
+
 interface Project {
   id: string
   title: string
   category: string
-  description: any // Lexical JSON
+  description: unknown // Lexical JSON
   tags?: { id: string; tag: string }[]
   github?: string
   demo?: string
@@ -80,7 +82,7 @@ export default async function ProjectsPage() {
                     </h2>
                     <div className="text-sm text-gray-400">
                       <p className="line-clamp-4">
-                        {/* Safe access to description text */}
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                         {(project.description as any)?.root?.children?.[0]?.children?.[0]?.text || ''}
                       </p>
                     </div>

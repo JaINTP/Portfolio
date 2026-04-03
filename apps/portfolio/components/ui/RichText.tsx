@@ -1,7 +1,7 @@
 import React from 'react'
 
 type Props = {
-  content: any
+  content: unknown
   className?: string
 }
 
@@ -11,7 +11,7 @@ const RichText = ({ content, className }: Props) => {
   return (
     <div className={`prose prose-invert max-w-none ${className}`}>
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-      {content.root?.children?.map((node: any, i: number) => {
+      {(content as any).root?.children?.map((node: any, i: number) => {
         if (node.type === 'paragraph') {
           return (
             <p key={i}>

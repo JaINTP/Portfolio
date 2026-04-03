@@ -6,6 +6,8 @@ import { getPayloadClient } from '@/lib/payload'
 import RichText from '@/components/ui/RichText'
 import Comments from '@/components/blog/Comments'
 
+/* eslint-disable @next/next/no-img-element */
+
 interface Blog {
   id: string
   title: string
@@ -14,7 +16,7 @@ interface Blog {
   excerpt: string
   publishedAt: string
   status: string
-  content: any // Rich text JSON
+  content: unknown // Rich text JSON
   image?: {
     url: string
   } | string
