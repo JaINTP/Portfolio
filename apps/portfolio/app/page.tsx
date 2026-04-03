@@ -1,7 +1,32 @@
 import React from 'react'
 import Link from 'next/link'
-import { ArrowRight, GitHub, ExternalLink, Clock } from 'lucide-react'
+import { ArrowRight, Github, ExternalLink, Clock } from 'lucide-react'
 import { getPayloadClient } from '@/lib/payload'
+
+interface Blog {
+  id: string
+  title: string
+  category: string
+  readTime: string
+  excerpt: string
+  publishedAt: string
+  image?: {
+    url: string
+  } | string
+}
+
+interface Project {
+  id: string
+  title: string
+  category: string
+  excerpt?: string
+  tags?: { id: string; tag: string }[]
+  github?: string
+  demo?: string
+  image?: {
+    url: string
+  } | string
+}
 
 const categoryKey = (value: string) =>
   value ? value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : ''
@@ -46,8 +71,8 @@ export default async function Home() {
     },
   })
 
-  const featuredProjects = projectsRes.docs
-  const latestBlogs = blogsRes.docs
+  const featuredProjects = projectsRes.docs as unknown as Project[]
+  const latestBlogs = blogsRes.docs as unknown as Blog[]
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-gray-950 to-black">
@@ -109,7 +134,7 @@ export default async function Home() {
         </div>
 
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {featuredProjects.map((project: any) => (
+          {featuredProjects.map((project) => (
             <Link
               key={project.id}
               href={`/projects/${project.id}`}
@@ -141,7 +166,7 @@ export default async function Home() {
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {project.tags?.slice(0, 3).map((tag: any) => (
+                  {project.tags?.slice(0, 3).map((tag) => (
                     <span key={tag.id} className="rounded-full bg-white/5 px-2 py-1 text-xs text-gray-400">
                       {tag.tag}
                     </span>
@@ -185,7 +210,7 @@ export default async function Home() {
           </div>
 
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {latestBlogs.map((blog: any) => (
+            {latestBlogs.map((blog) => (
               <Link
                 key={blog.id}
                 href={`/blog/${blog.id}`}

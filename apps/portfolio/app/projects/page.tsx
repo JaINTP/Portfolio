@@ -3,6 +3,19 @@ import Link from 'next/link'
 import { Github, ExternalLink, ArrowRight } from 'lucide-react'
 import { getPayloadClient } from '@/lib/payload'
 
+interface Project {
+  id: string
+  title: string
+  category: string
+  description: any // Lexical JSON
+  tags?: { id: string; tag: string }[]
+  github?: string
+  demo?: string
+  image?: {
+    url: string
+  } | string
+}
+
 const categoryKey = (value: string) =>
   value ? value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : ''
 
@@ -24,7 +37,7 @@ export default async function ProjectsPage() {
     sort: '-createdAt',
   })
 
-  const projects = projectsRes.docs
+  const projects = projectsRes.docs as unknown as Project[]
 
   return (
     <div className="min-h-screen pt-32 pb-20 bg-gradient-to-b from-black via-gray-950 to-black">
@@ -38,7 +51,7 @@ export default async function ProjectsPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
-          {projects.map((project: any) => (
+          {projects.map((project) => (
             <div
               key={project.id}
               className="group relative rounded-3xl border border-white/10 bg-white/5 overflow-hidden transition-all duration-500 hover:border-cyan-400/30 hover:bg-white/[0.07]"
@@ -66,13 +79,13 @@ export default async function ProjectsPage() {
                       {project.title}
                     </h2>
                     <div className="text-sm text-gray-400">
-                      {/* Simplified description rendering */}
                       <p className="line-clamp-4">
-                        {project.description?.root?.children?.[0]?.children?.[0]?.text || ''}
+                        {/* Safe access to description text */}
+                        {(project.description as any)?.root?.children?.[0]?.children?.[0]?.text || ''}
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2 pt-2">
-                      {project.tags?.map((tag: any) => (
+                      {project.tags?.map((tag) => (
                         <span key={tag.id} className="rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs text-gray-400">
                           {tag.tag}
                         </span>
@@ -87,7 +100,7 @@ export default async function ProjectsPage() {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-cyan-400 transition-colors"
                       >
-                        <GitHub className="w-5 h-5" />
+                        <Github className="w-5 h-5" />
                         Code
                       </a>
                     )}

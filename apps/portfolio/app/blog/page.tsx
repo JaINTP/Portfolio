@@ -3,6 +3,18 @@ import Link from 'next/link'
 import { Clock } from 'lucide-react'
 import { getPayloadClient } from '@/lib/payload'
 
+interface Blog {
+  id: string
+  title: string
+  category: string
+  readTime: string
+  excerpt: string
+  publishedAt: string
+  image?: {
+    url: string
+  } | string
+}
+
 const categoryKey = (value: string) =>
   value ? value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : ''
 
@@ -39,7 +51,7 @@ export default async function BlogPage() {
     },
   })
 
-  const blogs = blogsRes.docs
+  const blogs = blogsRes.docs as unknown as Blog[]
 
   return (
     <div className="min-h-screen pt-32 pb-20 bg-gradient-to-b from-black via-gray-950 to-black">
@@ -53,7 +65,7 @@ export default async function BlogPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {blogs.map((blog: any) => (
+          {blogs.map((blog) => (
             <Link
               key={blog.id}
               href={`/blog/${blog.id}`}

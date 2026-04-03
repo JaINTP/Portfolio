@@ -1,16 +1,34 @@
 import React from 'react'
 import { getPayloadClient } from '@/lib/payload'
 import RichText from '@/components/ui/RichText'
-import { Mail, MapPin, Code2, GraduationCap, Briefcase } from 'lucide-react'
+import { Mail, MapPin, Code2, Github, Linkedin, Twitter } from 'lucide-react'
+
+interface AboutProfile {
+  name: string
+  title: string
+  bio: any
+  email: string
+  location: string
+  skills?: { id: string; skill: string }[]
+  profileImage?: { url: string } | string
+  dog?: {
+    name: string
+    role: string
+    bio: any
+    image?: { url: string } | string
+    skills?: { id: string; skill: string }[]
+  }
+}
 
 export default async function AboutPage() {
   const payload = await getPayloadClient()
   
-  let profile: any = null
+  let profile: AboutProfile | null = null
   try {
-    profile = await payload.findGlobal({
+    const res = await payload.findGlobal({
       slug: 'about',
     })
+    profile = res as unknown as AboutProfile
   } catch {
     profile = null
   }
@@ -61,11 +79,20 @@ export default async function AboutPage() {
               <div className="pt-8 space-y-4">
                 <h3 className="text-lg font-bold text-white">Skills</h3>
                 <div className="flex flex-wrap gap-2">
-                  {profile.skills?.map((s: any) => (
+                  {profile.skills?.map((s) => (
                     <span key={s.id} className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-gray-400">
                       {s.skill}
                     </span>
                   ))}
+                </div>
+              </div>
+
+              <div className="pt-8 space-y-4">
+                <h3 className="text-lg font-bold text-white">Connect</h3>
+                <div className="flex gap-4">
+                   <Github className="w-6 h-6 text-gray-400 hover:text-cyan-400 cursor-pointer" />
+                   <Linkedin className="w-6 h-6 text-gray-400 hover:text-cyan-400 cursor-pointer" />
+                   <Twitter className="w-6 h-6 text-gray-400 hover:text-cyan-400 cursor-pointer" />
                 </div>
               </div>
             </div>

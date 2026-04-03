@@ -6,6 +6,20 @@ import { getPayloadClient } from '@/lib/payload'
 import RichText from '@/components/ui/RichText'
 import Comments from '@/components/blog/Comments'
 
+interface Blog {
+  id: string
+  title: string
+  category: string
+  readTime: string
+  excerpt: string
+  publishedAt: string
+  status: string
+  content: any // Rich text JSON
+  image?: {
+    url: string
+  } | string
+}
+
 type Props = {
   params: Promise<{
     id: string
@@ -16,13 +30,14 @@ export default async function BlogDetailPage({ params }: Props) {
   const { id } = await params
   const payload = await getPayloadClient()
 
-  let blog: any = null
+  let blog: Blog | null = null
   const now = new Date().toISOString()
   try {
-    blog = await payload.findByID({
+    const res = await payload.findByID({
       collection: 'blog-posts',
       id,
     })
+    blog = res as unknown as Blog
     
     // Check if post is published and scheduled date has passed
     if (!blog || blog.status !== 'published' || new Date(blog.publishedAt) > new Date(now)) {

@@ -1,24 +1,34 @@
 import React from 'react'
 import Link from 'next/link'
-import { Mail, GitHub, Linkedin, Twitter } from 'lucide-react'
+import { Mail, Github, Linkedin, Twitter } from 'lucide-react'
 import { getPayloadClient } from '@/lib/payload'
+
+interface Profile {
+  email?: string
+  social?: {
+    github?: string
+    linkedin?: string
+    twitter?: string
+  }
+}
 
 const Footer = async () => {
   const currentYear = new Date().getFullYear()
   const payload = await getPayloadClient()
   
-  let profile = null
+  let profile: Profile | null = null
   try {
-    profile = await payload.findGlobal({
+    const res = await payload.findGlobal({
       slug: 'about',
     })
+    profile = res as unknown as Profile
   } catch {
     profile = null
   }
 
   const socialLinks = []
   if (profile?.social?.github) {
-    socialLinks.push({ icon: GitHub, href: profile.social.github, label: 'GitHub' })
+    socialLinks.push({ icon: Github, href: profile.social.github, label: 'GitHub' })
   }
   if (profile?.social?.linkedin) {
     socialLinks.push({ icon: Linkedin, href: profile.social.linkedin, label: 'LinkedIn' })
