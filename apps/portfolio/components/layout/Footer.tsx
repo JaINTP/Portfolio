@@ -1,7 +1,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { Mail, Github, Linkedin, Twitter } from 'lucide-react'
-import { getPayloadClient } from '@/lib/payload'
+import { getAboutProfile } from '@/lib/api'
 
 interface Profile {
   email?: string
@@ -17,11 +17,7 @@ const Footer = async () => {
   
   let profile: Profile | null = null
   try {
-    const payload = await getPayloadClient()
-    const res = await payload.findGlobal({
-      slug: 'about',
-    })
-    profile = res as unknown as Profile
+    profile = await getAboutProfile()
   } catch (e) {
     console.error('Footer failed to fetch profile data:', e)
     profile = null
@@ -103,7 +99,7 @@ const Footer = async () => {
 
         <div className="mt-12 pt-8 border-t border-white/10">
           <p className="text-center text-gray-500 text-sm">
-            © {currentYear} Portfolio. Built with Next.js & Payload CMS.
+            © {currentYear} Portfolio. Built with Next.js & Python API.
           </p>
           <div className="mt-4 flex justify-center gap-6">
             <Link href="/terms" className="text-gray-500 hover:text-cyan-400 text-xs transition-colors">

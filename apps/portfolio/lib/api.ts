@@ -17,6 +17,10 @@ export async function getProjects() {
   return fetchFromApi('/projects')
 }
 
+export async function getProject(id: string) {
+  return fetchFromApi(`/projects/${id}`)
+}
+
 export async function getAboutProfile() {
   return fetchFromApi('/about')
 }
