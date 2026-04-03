@@ -7,6 +7,7 @@ async function request(path: string, { method = 'GET', body, headers = {} }: any
       Accept: 'application/json',
       ...headers,
     },
+    credentials: 'include', // Required for session cookies
     cache: 'no-store',
   }
 

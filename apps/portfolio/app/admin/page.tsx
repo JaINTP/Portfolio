@@ -13,6 +13,9 @@ export default function AdminPage() {
   const [about, setAbout] = useState<any>(null)
   const [authForm, setAuthForm] = useState({ email: '', password: '' })
 
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
   const checkSession = async () => {
     try {
       const data = await api.session()
@@ -48,11 +51,16 @@ export default function AdminPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSubmitting(true)
+    setError(null)
     try {
       await api.login(authForm)
-      checkSession()
+      await checkSession()
     } catch (err: any) {
-      alert(err.message)
+      console.error('Login error:', err)
+      setError(err.message || 'Invalid credentials or server error')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -78,6 +86,11 @@ export default function AdminPage() {
             <p className="mt-2 text-gray-400 text-sm">Sign in to manage your portfolio</p>
           </div>
           <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs py-3 px-4 rounded-xl text-center">
+                {error}
+              </div>
+            )}
             <div className="space-y-4">
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Email address</label>
@@ -102,9 +115,10 @@ export default function AdminPage() {
             </div>
             <button
               type="submit"
-              className="w-full py-4 bg-cyan-500 text-black font-bold rounded-xl hover:bg-cyan-400 transition-all shadow-lg shadow-cyan-500/20"
+              disabled={submitting}
+              className="w-full py-4 bg-cyan-500 text-black font-bold rounded-xl hover:bg-cyan-400 transition-all shadow-lg shadow-cyan-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign In
+              {submitting ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
         </div>
