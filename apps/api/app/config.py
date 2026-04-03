@@ -244,9 +244,6 @@ class Settings(BaseSettings):
         allowed = {"lax", "strict", "none"}
         if normalised not in allowed:
             raise ValueError(f"session_cookie_samesite must be one of {allowed}.")
-        if normalised == "none":
-            # When SameSite=None, cookies must be Secure per modern browser requirements.
-            raise ValueError("SameSite=None is not supported for security reasons.")
         return normalised
 
     @field_validator("uploads_dir", mode="after")
