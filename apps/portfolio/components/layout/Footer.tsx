@@ -14,15 +14,16 @@ interface Profile {
 
 const Footer = async () => {
   const currentYear = new Date().getFullYear()
-  const payload = await getPayloadClient()
   
   let profile: Profile | null = null
   try {
+    const payload = await getPayloadClient()
     const res = await payload.findGlobal({
       slug: 'about',
     })
     profile = res as unknown as Profile
-  } catch {
+  } catch (e) {
+    console.error('Footer failed to fetch profile data:', e)
     profile = null
   }
 

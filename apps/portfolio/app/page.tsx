@@ -46,37 +46,44 @@ const getCategoryColor = (category: string) => {
 }
 
 export default async function Home() {
-  const payload = await getPayloadClient()
+  let featuredProjects: Project[] = []
+  let latestBlogs: Blog[] = []
 
-  const now = new Date().toISOString()
-  const projectsRes = await payload.find({
-    collection: 'projects',
-    limit: 3,
-    sort: '-createdAt',
-  })
+  try {
+    const payload = await getPayloadClient()
+    const now = new Date().toISOString()
+    
+    const projectsRes = await payload.find({
+      collection: 'projects',
+      limit: 3,
+      sort: '-createdAt',
+    })
 
-  const blogsRes = await payload.find({
-    collection: 'blog-posts',
-    limit: 3,
-    sort: '-publishedAt',
-    where: {
-      and: [
-        {
-          status: {
-            equals: 'published',
+    const blogsRes = await payload.find({
+      collection: 'blog-posts',
+      limit: 3,
+      sort: '-publishedAt',
+      where: {
+        and: [
+          {
+            status: {
+              equals: 'published',
+            },
           },
-        },
-        {
-          publishedAt: {
-            less_than_equal: now,
+          {
+            publishedAt: {
+              less_than_equal: now,
+            },
           },
-        },
-      ],
-    },
-  })
+        ],
+      },
+    })
 
-  const featuredProjects = projectsRes.docs as unknown as Project[]
-  const latestBlogs = blogsRes.docs as unknown as Blog[]
+    featuredProjects = projectsRes.docs as unknown as Project[]
+    latestBlogs = blogsRes.docs as unknown as Blog[]
+  } catch (e) {
+    console.error('Home page failed to fetch data:', e)
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-gray-950 to-black">
@@ -194,6 +201,9 @@ export default async function Home() {
             </Link>
           ))}
         </div>
+        {featuredProjects.length === 0 && (
+          <div className="text-center py-10 text-gray-500">No featured projects available.</div>
+        )}
       </section>
 
       {/* Latest Blog Posts */}
@@ -262,6 +272,9 @@ export default async function Home() {
               </Link>
             ))}
           </div>
+          {latestBlogs.length === 0 && (
+            <div className="text-center py-10 text-gray-500">No blog posts available.</div>
+          )}
         </div>
       </section>
     </div>

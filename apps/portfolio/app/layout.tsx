@@ -19,6 +19,8 @@ export const metadata: Metadata = {
   description: 'Personal portfolio showcasing projects, blog posts, and research.',
 }
 
+export const dynamic = 'force-dynamic'
+
 export default function RootLayout({
   children,
 }: Readonly<{
