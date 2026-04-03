@@ -1,0 +1,40 @@
+{
+  "name": "portfolio",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@auth/core": "^0.34.3",
+    "@auth/prisma-adapter": "^2.11.1",
+    "@giscus/react": "^3.1.0",
+    "@payloadcms/db-postgres": "^3.81.0",
+    "@payloadcms/next": "^3.81.0",
+    "@payloadcms/richtext-lexical": "^3.81.0",
+    "@payloadcms/storage-s3": "^3.81.0",
+    "@prisma/client": "^7.6.0",
+    "graphql": "^16.13.2",
+    "lucide-react": "^1.7.0",
+    "next": "^15.5.14",
+    "next-auth": "^5.0.0-beta.25",
+    "payload": "^3.81.0",
+    "prisma": "^7.6.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.2",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
