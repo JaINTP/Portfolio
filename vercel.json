@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd apps/portfolio && npm install --legacy-peer-deps && next build",
+  "outputDirectory": "apps/portfolio/.next",
+  "framework": "nextjs"
+}
