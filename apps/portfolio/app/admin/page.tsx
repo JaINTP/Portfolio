@@ -55,7 +55,18 @@ export default function AdminPage() {
     setError(null)
     try {
       await api.login(authForm)
-      await checkSession()
+      // Small delay to allow cookie processing
+      await new Promise(r => setTimeout(r, 500))
+      const sessionData = await api.session()
+      setSession(sessionData)
+      
+      if (!sessionData.authenticated) {
+        setError('Login successful, but session could not be established. Please check if cookies are enabled.')
+      } else if (!sessionData.is_admin) {
+        setError('You are logged in but do not have admin privileges.')
+      } else {
+        loadData()
+      }
     } catch (err: any) {
       console.error('Login error:', err)
       setError(err.message || 'Invalid credentials or server error')
