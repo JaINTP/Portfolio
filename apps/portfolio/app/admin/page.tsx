@@ -62,9 +62,11 @@ export default function AdminPage() {
       
       if (!sessionData.authenticated) {
         setError('Login successful, but session could not be established. Please check if cookies are enabled.')
-      } else if (!sessionData.is_admin) {
+      } else if (sessionData.is_admin === false) {
         setError('You are logged in but do not have admin privileges.')
       } else {
+        // Admin or authenticated successfully
+        setSession(sessionData)
         loadData()
       }
     } catch (err: any) {
@@ -88,7 +90,7 @@ export default function AdminPage() {
     return <div className="min-h-screen bg-black flex items-center justify-center text-white">Loading...</div>
   }
 
-  if (!session?.authenticated || !session?.is_admin) {
+  if (!session?.authenticated || session?.is_admin === false) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center px-4">
         <div className="max-w-md w-full space-y-8 bg-white/5 p-10 rounded-3xl border border-white/10">

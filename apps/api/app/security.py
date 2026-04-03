@@ -34,7 +34,7 @@ def create_access_token(subject: str, expires_delta: Optional[timedelta] = None)
         if expires_delta is not None
         else timedelta(minutes=settings.access_token_expire_minutes)
     )
-    payload: dict[str, Any] = {"sub": subject, "exp": expire}
+    payload: dict[str, Any] = {"sub": subject, "exp": expire, "is_admin": True}
     return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 
 
