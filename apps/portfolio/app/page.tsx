@@ -1,7 +1,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { ArrowRight, Github, ExternalLink, Clock } from 'lucide-react'
-import { getPayloadClient } from '@/lib/payload'
+import { getProjects, getBlogPosts } from '@/lib/api'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,25 +11,21 @@ interface Blog {
   id: string
   title: string
   category: string
-  readTime: string
+  read_time?: string
   excerpt: string
-  publishedAt: string
-  image?: {
-    url: string
-  } | string
+  created_at: string
+  image?: string
 }
 
 interface Project {
   id: string
   title: string
   category: string
-  excerpt?: string
-  tags?: { id: string; tag: string }[]
+  description: string
+  tags?: string[]
   github?: string
   demo?: string
-  image?: {
-    url: string
-  } | string
+  image?: string
 }
 
 const categoryKey = (value: string) =>
@@ -50,37 +46,13 @@ export default async function Home() {
   let latestBlogs: Blog[] = []
 
   try {
-    const payload = await getPayloadClient()
-    const now = new Date().toISOString()
-    
-    const projectsRes = await payload.find({
-      collection: 'projects',
-      limit: 3,
-      sort: '-createdAt',
-    })
+    const [projects, blogs] = await Promise.all([
+      getProjects(),
+      getBlogPosts()
+    ])
 
-    const blogsRes = await payload.find({
-      collection: 'blog-posts',
-      limit: 3,
-      sort: '-publishedAt',
-      where: {
-        and: [
-          {
-            status: {
-              equals: 'published',
-            },
-          },
-          {
-            publishedAt: {
-              less_than_equal: now,
-            },
-          },
-        ],
-      },
-    })
-
-    featuredProjects = projectsRes.docs as unknown as Project[]
-    latestBlogs = blogsRes.docs as unknown as Blog[]
+    featuredProjects = (projects || []).slice(0, 3)
+    latestBlogs = (blogs || []).slice(0, 3)
   } catch (e) {
     console.error('Home page failed to fetch data:', e)
   }
@@ -152,9 +124,9 @@ export default async function Home() {
               className="group rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/50 hover:shadow-2xl hover:shadow-cyan-500/20"
             >
               <div className="aspect-video overflow-hidden rounded-t-2xl bg-gray-900">
-                {project.image && typeof project.image !== 'string' && (
+                {project.image && (
                   <img
-                    src={project.image.url}
+                    src={project.image}
                     alt={project.title}
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />
@@ -173,13 +145,13 @@ export default async function Home() {
                     {project.title}
                   </h3>
                   <p className="mt-2 line-clamp-2 text-sm text-gray-400">
-                    {project.excerpt || ''}
+                    {project.description}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {project.tags?.slice(0, 3).map((tag) => (
-                    <span key={tag.id} className="rounded-full bg-white/5 px-2 py-1 text-xs text-gray-400">
-                      {tag.tag}
+                  {project.tags?.slice(0, 3).map((tag, idx) => (
+                    <span key={idx} className="rounded-full bg-white/5 px-2 py-1 text-xs text-gray-400">
+                      {tag}
                     </span>
                   ))}
                 </div>
@@ -231,9 +203,9 @@ export default async function Home() {
                 className="group rounded-2xl border border-white/10 bg-black/60 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/50 hover:shadow-2xl hover:shadow-cyan-500/20"
               >
                 <div className="aspect-video overflow-hidden rounded-t-2xl bg-gray-900">
-                  {blog.image && typeof blog.image !== 'string' && (
+                  {blog.image && (
                     <img
-                      src={blog.image.url}
+                      src={blog.image}
                       alt={blog.title}
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
@@ -250,7 +222,7 @@ export default async function Home() {
                     </span>
                     <span className="inline-flex items-center gap-1 text-xs text-gray-400">
                       <Clock className="h-3 w-3" />
-                      {blog.readTime}
+                      {blog.read_time || '5 min'}
                     </span>
                   </div>
                   <div>
@@ -260,8 +232,8 @@ export default async function Home() {
                     <p className="mt-2 line-clamp-2 text-sm text-gray-400">{blog.excerpt}</p>
                   </div>
                   <time className="text-xs text-gray-500">
-                    {blog.publishedAt
-                      ? new Date(blog.publishedAt).toLocaleDateString('en-US', {
+                    {blog.created_at
+                      ? new Date(blog.created_at).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric',

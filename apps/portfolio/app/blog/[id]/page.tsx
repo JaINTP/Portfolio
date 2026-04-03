@@ -2,8 +2,7 @@ import React from 'react'
 import { notFound } from 'next/navigation'
 import { Clock, Calendar, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
-import { getPayloadClient } from '@/lib/payload'
-import RichText from '@/components/ui/RichText'
+import { getBlogPost } from '@/lib/api'
 import Comments from '@/components/blog/Comments'
 
 export const dynamic = 'force-dynamic'
@@ -14,14 +13,11 @@ interface Blog {
   id: string
   title: string
   category: string
-  readTime: string
+  read_time?: string
   excerpt: string
-  publishedAt: string
-  status: string
-  content: unknown // Rich text JSON
-  image?: {
-    url: string
-  } | string
+  created_at: string
+  content: string // HTML or Markdown string from Python API
+  image?: string
 }
 
 type Props = {
@@ -32,22 +28,16 @@ type Props = {
 
 export default async function BlogDetailPage({ params }: Props) {
   const { id } = await params
-  const payload = await getPayloadClient()
-
+  
   let blog: Blog | null = null
-  const now = new Date().toISOString()
   try {
-    const res = await payload.findByID({
-      collection: 'blog-posts',
-      id,
-    })
-    blog = res as unknown as Blog
-    
-    // Check if post is published and scheduled date has passed
-    if (!blog || blog.status !== 'published' || new Date(blog.publishedAt) > new Date(now)) {
-      return notFound()
-    }
-  } catch {
+    blog = await getBlogPost(id)
+  } catch (error) {
+    console.error('Error fetching blog post:', error)
+    return notFound()
+  }
+
+  if (!blog) {
     return notFound()
   }
 
@@ -70,7 +60,7 @@ export default async function BlogDetailPage({ params }: Props) {
             <div className="flex items-center gap-4 text-sm text-gray-400">
               <span className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
-                {new Date(blog.publishedAt).toLocaleDateString('en-US', {
+                {new Date(blog.created_at).toLocaleDateString('en-US', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric',
@@ -78,7 +68,7 @@ export default async function BlogDetailPage({ params }: Props) {
               </span>
               <span className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
-                {blog.readTime}
+                {blog.read_time || '5 min'}
               </span>
             </div>
           </div>
@@ -90,18 +80,18 @@ export default async function BlogDetailPage({ params }: Props) {
           </p>
         </header>
 
-        {blog.image && typeof blog.image !== 'string' && (
+        {blog.image && (
           <div className="mb-12 rounded-3xl overflow-hidden border border-white/10 shadow-2xl shadow-cyan-500/10">
             <img 
-              src={blog.image.url} 
+              src={blog.image} 
               alt={blog.title}
               className="w-full h-auto object-cover max-h-[500px]"
             />
           </div>
         )}
 
-        <div className="prose prose-invert max-w-none">
-          <RichText content={blog.content} />
+        <div className="prose prose-invert max-w-none text-gray-300 leading-relaxed whitespace-pre-wrap">
+          {blog.content}
         </div>
 
         <Comments />

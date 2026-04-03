@@ -1,7 +1,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { Clock } from 'lucide-react'
-import { getPayloadClient } from '@/lib/payload'
+import { getBlogPosts } from '@/lib/api'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,12 +11,10 @@ interface Blog {
   id: string
   title: string
   category: string
-  readTime: string
+  read_time?: string
   excerpt: string
-  publishedAt: string
-  image?: {
-    url: string
-  } | string
+  created_at: string
+  image?: string
 }
 
 const categoryKey = (value: string) =>
@@ -33,29 +31,14 @@ const getCategoryColor = (category: string) => {
 }
 
 export default async function BlogPage() {
-  const payload = await getPayloadClient()
-
-  const now = new Date().toISOString()
-  const blogsRes = await payload.find({
-    collection: 'blog-posts',
-    sort: '-publishedAt',
-    where: {
-      and: [
-        {
-          status: {
-            equals: 'published',
-          },
-        },
-        {
-          publishedAt: {
-            less_than_equal: now,
-          },
-        },
-      ],
-    },
-  })
-
-  const blogs = blogsRes.docs as unknown as Blog[]
+  let blogs: Blog[] = []
+  
+  try {
+    blogs = await getBlogPosts()
+  } catch (error) {
+    console.error('Error fetching blogs:', error)
+    blogs = []
+  }
 
   return (
     <div className="min-h-screen pt-32 pb-20 bg-gradient-to-b from-black via-gray-950 to-black">
@@ -76,9 +59,9 @@ export default async function BlogPage() {
               className="group rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/50 hover:shadow-2xl hover:shadow-cyan-500/20"
             >
               <div className="aspect-video overflow-hidden rounded-t-2xl bg-gray-900">
-                {blog.image && typeof blog.image !== 'string' && (
+                {blog.image && (
                   <img
-                    src={blog.image.url}
+                    src={blog.image}
                     alt={blog.title}
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />
@@ -95,7 +78,7 @@ export default async function BlogPage() {
                   </span>
                   <span className="inline-flex items-center gap-1 text-xs text-gray-400">
                     <Clock className="h-3 w-3" />
-                    {blog.readTime}
+                    {blog.read_time || '5 min'}
                   </span>
                 </div>
                 <div>
@@ -105,8 +88,8 @@ export default async function BlogPage() {
                   <p className="mt-2 line-clamp-3 text-sm text-gray-400">{blog.excerpt}</p>
                 </div>
                 <time className="text-xs text-gray-500">
-                  {blog.publishedAt
-                    ? new Date(blog.publishedAt).toLocaleDateString('en-US', {
+                  {blog.created_at
+                    ? new Date(blog.created_at).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric',

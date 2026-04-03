@@ -1,7 +1,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { Github, ExternalLink, ArrowRight } from 'lucide-react'
-import { getPayloadClient } from '@/lib/payload'
+import { getProjects } from '@/lib/api'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,13 +11,11 @@ interface Project {
   id: string
   title: string
   category: string
-  description: unknown // Lexical JSON
-  tags?: { id: string; tag: string }[]
+  description: string
+  tags?: string[]
   github?: string
   demo?: string
-  image?: {
-    url: string
-  } | string
+  image?: string
 }
 
 const categoryKey = (value: string) =>
@@ -34,14 +32,14 @@ const getCategoryColor = (category: string) => {
 }
 
 export default async function ProjectsPage() {
-  const payload = await getPayloadClient()
-
-  const projectsRes = await payload.find({
-    collection: 'projects',
-    sort: '-createdAt',
-  })
-
-  const projects = projectsRes.docs as unknown as Project[]
+  let projects: Project[] = []
+  
+  try {
+    projects = await getProjects()
+  } catch (error) {
+    console.error('Error fetching projects:', error)
+    projects = []
+  }
 
   return (
     <div className="min-h-screen pt-32 pb-20 bg-gradient-to-b from-black via-gray-950 to-black">
@@ -62,9 +60,9 @@ export default async function ProjectsPage() {
             >
               <div className="grid grid-cols-1 md:grid-cols-2">
                 <div className="aspect-square md:aspect-auto overflow-hidden bg-gray-900">
-                  {project.image && typeof project.image !== 'string' && (
+                  {project.image && (
                     <img
-                      src={project.image.url}
+                      src={project.image}
                       alt={project.title}
                       className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
@@ -84,14 +82,13 @@ export default async function ProjectsPage() {
                     </h2>
                     <div className="text-sm text-gray-400">
                       <p className="line-clamp-4">
-                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                        {(project.description as any)?.root?.children?.[0]?.children?.[0]?.text || ''}
+                        {project.description}
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2 pt-2">
-                      {project.tags?.map((tag) => (
-                        <span key={tag.id} className="rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs text-gray-400">
-                          {tag.tag}
+                      {project.tags?.map((tag, idx) => (
+                        <span key={idx} className="rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs text-gray-400">
+                          {tag}
                         </span>
                       ))}
                     </div>

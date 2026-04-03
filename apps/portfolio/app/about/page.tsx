@@ -1,6 +1,5 @@
 import React from 'react'
-import { getPayloadClient } from '@/lib/payload'
-import RichText from '@/components/ui/RichText'
+import { getAboutProfile } from '@/lib/api'
 import { Mail, MapPin, Code2, Github, Linkedin, Twitter } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -10,30 +9,31 @@ export const dynamic = 'force-dynamic'
 interface AboutProfile {
   name: string
   title: string
-  bio: unknown
+  bio: string
   email: string
   location: string
-  skills?: { id: string; skill: string }[]
-  profileImage?: { url: string } | string
+  skills?: string[]
+  profile_image?: string
+  social?: {
+    github?: string
+    linkedin?: string
+    twitter?: string
+  }
   dog?: {
     name: string
     role: string
-    bio: unknown
-    image?: { url: string } | string
-    skills?: { id: string; skill: string }[]
+    bio: string
+    image?: string
+    skills?: string[]
   }
 }
 
 export default async function AboutPage() {
-  const payload = await getPayloadClient()
-  
   let profile: AboutProfile | null = null
   try {
-    const res = await payload.findGlobal({
-      slug: 'about',
-    })
-    profile = res as unknown as AboutProfile
-  } catch {
+    profile = await getAboutProfile()
+  } catch (error) {
+    console.error('Error fetching about profile:', error)
     profile = null
   }
 
@@ -55,9 +55,9 @@ export default async function AboutPage() {
               <div className="relative group">
                 <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-3xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />
                 <div className="relative bg-black border border-white/10 rounded-3xl overflow-hidden p-2">
-                  {profile.profileImage && typeof profile.profileImage !== 'string' && (
+                  {profile.profile_image && (
                     <img 
-                      src={profile.profileImage.url} 
+                      src={profile.profile_image} 
                       alt={profile.name}
                       className="w-full aspect-square object-cover rounded-2xl"
                     />
@@ -83,9 +83,9 @@ export default async function AboutPage() {
               <div className="pt-8 space-y-4">
                 <h3 className="text-lg font-bold text-white">Skills</h3>
                 <div className="flex flex-wrap gap-2">
-                  {profile.skills?.map((s) => (
-                    <span key={s.id} className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-gray-400">
-                      {s.skill}
+                  {profile.skills?.map((skill, idx) => (
+                    <span key={idx} className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-gray-400">
+                      {skill}
                     </span>
                   ))}
                 </div>
@@ -94,9 +94,21 @@ export default async function AboutPage() {
               <div className="pt-8 space-y-4">
                 <h3 className="text-lg font-bold text-white">Connect</h3>
                 <div className="flex gap-4">
-                   <Github className="w-6 h-6 text-gray-400 hover:text-cyan-400 cursor-pointer" />
-                   <Linkedin className="w-6 h-6 text-gray-400 hover:text-cyan-400 cursor-pointer" />
-                   <Twitter className="w-6 h-6 text-gray-400 hover:text-cyan-400 cursor-pointer" />
+                   {profile.social?.github && (
+                     <a href={profile.social.github} target="_blank" rel="noopener noreferrer">
+                       <Github className="w-6 h-6 text-gray-400 hover:text-cyan-400 cursor-pointer" />
+                     </a>
+                   )}
+                   {profile.social?.linkedin && (
+                     <a href={profile.social.linkedin} target="_blank" rel="noopener noreferrer">
+                       <Linkedin className="w-6 h-6 text-gray-400 hover:text-cyan-400 cursor-pointer" />
+                     </a>
+                   )}
+                   {profile.social?.twitter && (
+                     <a href={profile.social.twitter} target="_blank" rel="noopener noreferrer">
+                       <Twitter className="w-6 h-6 text-gray-400 hover:text-cyan-400 cursor-pointer" />
+                     </a>
+                   )}
                 </div>
               </div>
             </div>
@@ -109,17 +121,17 @@ export default async function AboutPage() {
                 <Code2 className="text-cyan-400" />
                 About Me
               </h2>
-              <div className="text-gray-400 text-lg leading-relaxed">
-                <RichText content={profile.bio} />
+              <div className="text-gray-400 text-lg leading-relaxed whitespace-pre-wrap">
+                {profile.bio}
               </div>
             </section>
 
             {profile.dog && (
               <section className="p-8 rounded-3xl border border-white/10 bg-white/5 space-y-6">
                 <div className="flex flex-col sm:flex-row gap-8 items-start">
-                  {profile.dog.image && typeof profile.dog.image !== 'string' && (
+                  {profile.dog.image && (
                     <img 
-                      src={profile.dog.image.url} 
+                      src={profile.dog.image} 
                       alt={profile.dog.name}
                       className="w-32 h-32 rounded-2xl object-cover border border-white/10"
                     />
@@ -129,8 +141,8 @@ export default async function AboutPage() {
                       <h3 className="text-2xl font-bold text-white">{profile.dog.name}</h3>
                       <p className="text-cyan-400 text-sm">{profile.dog.role}</p>
                     </div>
-                    <div className="text-gray-400 text-sm leading-relaxed italic">
-                      <RichText content={profile.dog.bio} />
+                    <div className="text-gray-400 text-sm leading-relaxed italic whitespace-pre-wrap">
+                      {profile.dog.bio}
                     </div>
                   </div>
                 </div>
