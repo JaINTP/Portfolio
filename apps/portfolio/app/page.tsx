@@ -2,6 +2,7 @@ import React from 'react'
 import Link from 'next/link'
 import { ArrowRight, Github, ExternalLink, Clock } from 'lucide-react'
 import { getProjects, getBlogPosts } from '@/lib/api'
+import { stripHtml } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -145,7 +146,7 @@ export default async function Home() {
                     {project.title}
                   </h3>
                   <p className="mt-2 line-clamp-2 text-sm text-gray-400">
-                    {project.description}
+                    {stripHtml(project.description)}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -229,7 +230,7 @@ export default async function Home() {
                     <h3 className="text-xl font-bold text-white transition-colors group-hover:text-cyan-400">
                       {blog.title}
                     </h3>
-                    <p className="mt-2 line-clamp-2 text-sm text-gray-400">{blog.excerpt}</p>
+                    <p className="mt-2 line-clamp-2 text-sm text-gray-400">{stripHtml(blog.excerpt)}</p>
                   </div>
                   <time className="text-xs text-gray-500">
                     {blog.created_at

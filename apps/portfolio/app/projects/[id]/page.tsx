@@ -77,11 +77,10 @@ export default async function ProjectDetailPage({ params }: Props) {
               </div>
             </div>
 
-            <div className="prose prose-invert max-w-none">
-              <div className="text-gray-300 text-lg leading-relaxed whitespace-pre-wrap">
-                {project.description}
-              </div>
-            </div>
+            <div 
+              className="prose prose-invert max-w-none text-gray-300 text-lg leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: project.description }}
+            />
 
             <div className="flex flex-wrap gap-4 pt-4">
               {project.github && (

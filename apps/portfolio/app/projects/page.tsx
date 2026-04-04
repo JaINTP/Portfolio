@@ -2,6 +2,7 @@ import React from 'react'
 import Link from 'next/link'
 import { Github, ExternalLink, ArrowRight } from 'lucide-react'
 import { getProjects } from '@/lib/api'
+import { stripHtml } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -82,7 +83,7 @@ export default async function ProjectsPage() {
                     </h2>
                     <div className="text-sm text-gray-400">
                       <p className="line-clamp-4">
-                        {project.description}
+                        {stripHtml(project.description)}
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2 pt-2">

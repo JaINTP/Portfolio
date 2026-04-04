@@ -90,9 +90,10 @@ export default async function BlogDetailPage({ params }: Props) {
           </div>
         )}
 
-        <div className="prose prose-invert max-w-none text-gray-300 leading-relaxed whitespace-pre-wrap">
-          {blog.content}
-        </div>
+        <div 
+          className="prose prose-invert max-w-none text-gray-300 leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: blog.content }}
+        />
 
         <Comments />
       </div>

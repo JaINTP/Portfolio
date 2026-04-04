@@ -115,19 +115,19 @@ export default async function AboutPage() {
           </div>
 
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-16">
-            <section className="space-y-6">
+            <section className="space-y-6 text-left">
               <h2 className="text-3xl font-bold text-white flex items-center gap-3">
                 <Code2 className="text-cyan-400" />
                 About Me
               </h2>
-              <div className="text-gray-400 text-lg leading-relaxed whitespace-pre-wrap">
-                {profile.bio}
-              </div>
+              <div 
+                className="prose prose-invert max-w-none text-gray-400 text-lg leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: profile.bio }}
+              />
             </section>
 
             {profile.dog && (
-              <section className="p-8 rounded-3xl border border-white/10 bg-white/5 space-y-6">
+              <section className="p-8 rounded-3xl border border-white/10 bg-white/5 space-y-6 text-left">
                 <div className="flex flex-col sm:flex-row gap-8 items-start">
                   {profile.dog.image && (
                     <img 
@@ -141,14 +141,14 @@ export default async function AboutPage() {
                       <h3 className="text-2xl font-bold text-white">{profile.dog.name}</h3>
                       <p className="text-cyan-400 text-sm">{profile.dog.role}</p>
                     </div>
-                    <div className="text-gray-400 text-sm leading-relaxed italic whitespace-pre-wrap">
-                      {profile.dog.bio}
-                    </div>
+                    <div 
+                      className="prose prose-invert max-w-none text-gray-400 text-sm leading-relaxed italic"
+                      dangerouslySetInnerHTML={{ __html: profile.dog.bio }}
+                    />
                   </div>
                 </div>
               </section>
             )}
-          </div>
         </div>
       </div>
     </div>
