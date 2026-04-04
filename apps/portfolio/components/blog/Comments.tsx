@@ -1,38 +1,55 @@
 'use client'
 
-import Giscus from '@giscus/react'
+import React, { useEffect } from 'react'
+import { usePathname } from 'next/navigation'
+
+declare global {
+  interface Window {
+    remark_config: any;
+    REMARK42: any;
+  }
+}
 
 export default function Comments() {
-  const repo = process.env.NEXT_PUBLIC_GISCUS_REPO as any
-  const repoId = process.env.NEXT_PUBLIC_GISCUS_REPO_ID as any
-  const category = process.env.NEXT_PUBLIC_GISCUS_CATEGORY as any
-  const categoryId = process.env.NEXT_PUBLIC_GISCUS_CATEGORY_ID as any
+  const pathname = usePathname()
+  const remarkUrl = process.env.NEXT_PUBLIC_REMARK_URL || 'https://comments.jaintp.com'
+  const siteId = process.env.NEXT_PUBLIC_REMARK_SITE_ID || 'jaintp-portfolio'
 
-  if (!repo || !repoId || !categoryId) {
-    return (
-      <div className="mt-12 pt-8 border-t border-white/10 text-center text-gray-500 text-sm">
-        Comments configuration is incomplete.
-      </div>
-    )
-  }
+  useEffect(() => {
+    // Reset Remark42 on route change
+    if (window.REMARK42) {
+      window.REMARK42.destroy()
+    }
+
+    window.remark_config = {
+      host: remarkUrl,
+      site_id: siteId,
+      url: window.location.origin + pathname,
+      components: ['embed'],
+      max_shown_comments: 10,
+      theme: 'dark',
+      locale: 'en',
+      show_email_subscription: false,
+    }
+
+    const script = document.createElement('script')
+    script.src = `${remarkUrl}/web/embed.js`
+    script.async = true
+    document.body.appendChild(script)
+
+    return () => {
+      if (script.parentNode) {
+        script.parentNode.removeChild(script)
+      }
+      if (window.REMARK42) {
+        window.REMARK42.destroy()
+      }
+    }
+  }, [pathname, remarkUrl, siteId])
 
   return (
-    <div className="mt-12 pt-8 border-t border-white/10">
-      <Giscus
-        id="comments"
-        repo={repo}
-        repoId={repoId}
-        category={category || "Announcements"}
-        categoryId={categoryId}
-        mapping="pathname"
-        term="Welcome to my portfolio!"
-        reactionsEnabled="1"
-        emitMetadata="0"
-        inputPosition="top"
-        theme="dark"
-        lang="en"
-        loading="lazy"
-      />
+    <div className="mt-16 pt-8 border-t border-white/10">
+      <div id="remark42" className="remark42"></div>
     </div>
   )
 }
